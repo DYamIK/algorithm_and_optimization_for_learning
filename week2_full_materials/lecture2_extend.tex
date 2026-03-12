@@ -157,6 +157,7 @@
     \item 一阶条件、二阶条件的证明
     \item KKT 条件的推导
     \item Logistic 回归的凸性证明
+    \item \textbf{梯度下降收敛性证明}：凸 $L$-光滑函数 $O(1/T)$ 收敛率；强凸函数线性收敛率
 \end{itemize}
 
 \textbf{进阶内容}（标注 $\bigstar$，适合优秀学生）：
@@ -683,8 +684,338 @@ f(\theta y + (1-\theta) x^*) \leq \theta f(y) + (1-\theta) f(x^*) < f(x^*)
 \end{insight}
 
 %========================================
+\section{梯度下降的收敛性 $\bigstar$}
+%========================================
+
+\begin{blackboard}[基本假设与记号]
+
+设 $f: \mathbb{R}^n \to \mathbb{R}$ 是可微函数，$x^* = \arg\min_x f(x)$ 是全局最优解，$f^* = f(x^*)$。
+
+\textbf{梯度下降迭代}（步长 $\alpha > 0$）：
+\[
+    x_{t+1} = x_t - \alpha \nabla f(x_t)
+\]
+
+本节使用以下两个核心假设：
+
+\begin{enumerate}
+    \item \textbf{凸性}：$f$ 是凸函数，即对所有 $x, y$：
+    \[
+        f(y) \geq f(x) + \nabla f(x)^T (y - x)
+    \]
+    \item \textbf{$L$-光滑性}（梯度 Lipschitz 连续）：存在常数 $L > 0$，使得对所有 $x, y$：
+    \[
+        \|\nabla f(x) - \nabla f(y)\|_2 \leq L \|x - y\|_2
+    \]
+    等价地，对所有 $x, y$：
+    \[
+        f(y) \leq f(x) + \nabla f(x)^T(y - x) + \frac{L}{2}\|y - x\|^2
+        \quad \text{（下降引理）}
+    \]
+\end{enumerate}
+
+\textbf{直觉}：$L$-光滑意味着函数不会"弯曲得太快"，梯度信息在一步之内仍然可靠。
+
+\end{blackboard}
+
+\begin{blackboard}[关键引理]
+
+\begin{lemma}[充分下降引理]
+设 $f$ 是 $L$-光滑函数，步长 $\alpha = 1/L$，则梯度下降每步保证：
+\[
+    f(x_{t+1}) \leq f(x_t) - \frac{1}{2L}\|\nabla f(x_t)\|^2
+\]
+\end{lemma}
+
+\textbf{证明}：将 $y = x_{t+1} = x_t - \frac{1}{L}\nabla f(x_t)$ 代入下降引理：
+\[
+    f(x_{t+1}) \leq f(x_t) + \nabla f(x_t)^T\!\left(-\frac{1}{L}\nabla f(x_t)\right)
+    + \frac{L}{2}\left\|\frac{1}{L}\nabla f(x_t)\right\|^2
+    = f(x_t) - \frac{1}{2L}\|\nabla f(x_t)\|^2 \qquad \square
+\]
+
+\textbf{推论}：$f(x_t)$ 单调不增，即梯度下降在凸 $L$-光滑函数上\textbf{永远不会变差}。
+
+\end{blackboard}
+
+\begin{blackboard}[主定理：$O(1/T)$ 收敛率]
+
+\begin{theorem}[凸函数梯度下降收敛率]
+设 $f$ 是凸函数且 $L$-光滑，步长 $\alpha = 1/L$。则对任意 $T \geq 1$：
+\[
+    f(x_T) - f^* \leq \frac{L\,\|x_0 - x^*\|^2}{2T}
+\]
+\end{theorem}
+
+\textbf{证明}：
+
+\textbf{第一步}：建立距离递推关系。令 $r_t = \|x_t - x^*\|^2$，展开：
+\begin{align*}
+    r_{t+1} &= \left\|x_t - \frac{1}{L}\nabla f(x_t) - x^*\right\|^2 \\
+    &= r_t - \frac{2}{L}\nabla f(x_t)^T(x_t - x^*) + \frac{1}{L^2}\|\nabla f(x_t)\|^2
+\end{align*}
+
+\textbf{第二步}：利用凸性下界。由凸性一阶条件（取 $y = x^*$）：
+\[
+    f(x_t) - f^* \leq \nabla f(x_t)^T(x_t - x^*)
+\]
+
+令 $\delta_t = f(x_t) - f^*$，代入第一步：
+\[
+    r_{t+1} \leq r_t - \frac{2}{L}\delta_t + \frac{1}{L^2}\|\nabla f(x_t)\|^2
+\]
+
+\textbf{第三步}：利用充分下降引理消去梯度范数。由引理知 $\|\nabla f(x_t)\|^2 \leq 2L(\delta_t - \delta_{t+1})$，故：
+\[
+    r_{t+1} \leq r_t - \frac{2}{L}\delta_t + \frac{2}{L}(\delta_t - \delta_{t+1})
+    = r_t - \frac{2}{L}\delta_{t+1}
+\]
+
+整理得：
+\[
+    \frac{2}{L}\delta_{t+1} \leq r_t - r_{t+1}
+\]
+
+\textbf{第四步}：对 $t = 0, 1, \ldots, T-1$ 求和（望远镜求和）：
+\[
+    \frac{2}{L}\sum_{t=1}^{T}\delta_t \leq r_0 - r_T \leq r_0 = \|x_0 - x^*\|^2
+\]
+
+\textbf{第五步}：由充分下降引理知 $\delta_t$ 单调不增，故 $T \cdot \delta_T \leq \sum_{t=1}^T \delta_t$，因此：
+\[
+    \frac{2T}{L}\delta_T \leq \|x_0 - x^*\|^2
+    \implies \boxed{f(x_T) - f^* \leq \frac{L\,\|x_0 - x^*\|^2}{2T}} \qquad \square
+\]
+
+\end{blackboard}
+
+\begin{keypoint}[$O(1/T)$ 收敛率的含义]
+
+\begin{itemize}
+    \item 要使误差 $\leq \varepsilon$，需要迭代次数 $T = O(L \|x_0 - x^*\|^2 / \varepsilon)$，即 $O(1/\varepsilon)$ 步。
+    \item 每步计算量为 $O(n)$（只算一次梯度），总计算量 $O(n/\varepsilon)$。
+    \item 这被称为\textbf{次线性收敛}（sublinear convergence）：误差以 $1/T$ 的速度衰减。
+    \item 此速率对一般凸函数是\textbf{最优的}（信息论下界），即无法在相同假设下做得更好。
+\end{itemize}
+
+\end{keypoint}
+
+\begin{blackboard}[强化：强凸函数的线性收敛率 $\bigstar$]
+
+若进一步假设 $f$ 是 \textbf{$\mu$-强凸}（$\mu > 0$），即对所有 $x, y$：
+\[
+    f(y) \geq f(x) + \nabla f(x)^T(y-x) + \frac{\mu}{2}\|y-x\|^2
+\]
+
+\begin{theorem}[强凸函数线性收敛率]
+设 $f$ 是 $\mu$-强凸且 $L$-光滑，步长 $\alpha = 1/L$，则：
+\[
+    \|x_T - x^*\|^2 \leq \left(1 - \frac{\mu}{L}\right)^T \|x_0 - x^*\|^2
+\]
+\end{theorem}
+
+\textbf{证明}：
+
+由强凸性（令 $y = x^*$）：
+\[
+    f(x_t) - f^* \geq \frac{\mu}{2}\|x_t - x^*\|^2 = \frac{\mu}{2} r_t
+\]
+
+由第三步的结论 $r_{t+1} \leq r_t - \frac{2}{L}\delta_{t+1}$，利用充分下降 $\delta_{t+1} \geq \frac{\mu}{2}r_{t+1}$：
+
+实际上，更直接地，从第一步和强凸性下界出发：
+\[
+    r_{t+1} \leq r_t - \frac{2}{L}\delta_t + \frac{1}{L^2}\|\nabla f(x_t)\|^2
+\]
+
+由强凸性推出 $\|\nabla f(x_t)\|^2 \geq 2\mu \delta_t$（证明略），结合 $\frac{1}{L^2}\|\nabla f(x_t)\|^2 \leq \frac{2}{L}\delta_t - \frac{2}{L}\delta_{t+1}$，
+
+更简洁地，利用强凸性的等价形式（强单调性）直接得：
+\begin{align*}
+    r_{t+1} &= \left\|x_t - \frac{1}{L}\nabla f(x_t) - x^*\right\|^2 \\
+    &= r_t - \frac{2}{L}\underbrace{\nabla f(x_t)^T(x_t - x^*)}_{\geq \frac{\mu}{2}r_t + \frac{1}{2L}\|\nabla f(x_t)\|^2}
+    + \frac{1}{L^2}\|\nabla f(x_t)\|^2 \\
+    &\leq r_t - \frac{\mu}{L} r_t - \frac{1}{L^2}\|\nabla f(x_t)\|^2 + \frac{1}{L^2}\|\nabla f(x_t)\|^2 \\
+    &= \left(1 - \frac{\mu}{L}\right) r_t
+\end{align*}
+
+（第二行利用了强凸性的等价不等式 $\nabla f(x)^T(x-y) \geq \frac{\mu}{2}\|x-y\|^2 + \frac{1}{2L}\|\nabla f(x) - \nabla f(y)\|^2$，取 $y=x^*$ 且 $\nabla f(x^*)=0$。）
+
+递归展开得：
+\[
+    \boxed{\|x_T - x^*\|^2 \leq \left(1 - \frac{\mu}{L}\right)^T \|x_0 - x^*\|^2} \qquad \square
+\]
+
+\end{blackboard}
+
+\begin{keypoint}[线性收敛率的含义]
+
+\begin{itemize}
+    \item 定义\textbf{条件数} $\kappa = L/\mu \geq 1$，收缩因子为 $1 - 1/\kappa$。
+    \item 要使 $\|x_T - x^*\|^2 \leq \varepsilon$，需要 $T = O(\kappa \log(1/\varepsilon))$ 步，即 $O(\log(1/\varepsilon))$ 步——远优于 $O(1/\varepsilon)$！
+    \item 这是\textbf{线性收敛}（linear convergence）：误差的对数随迭代线性下降，即"每次迭代误差减少一个固定百分比"。
+    \item $\kappa$ 越大（病态程度越高），收敛越慢；$\kappa = 1$ 时（即 $\mu = L$）一步到达最优。
+\end{itemize}
+
+\begin{center}
+\begin{tabular}{c|c|c|c}
+假设 & 收敛率 & 步数达到精度 $\varepsilon$ & 名称 \\
+\hline
+凸 $+$ $L$-光滑 & $O(1/T)$ & $O(1/\varepsilon)$ & 次线性收敛 \\
+强凸 $+$ $L$-光滑 & $O((1-\mu/L)^T)$ & $O(\kappa \log 1/\varepsilon)$ & 线性收敛
+\end{tabular}
+\end{center}
+
+\end{keypoint}
+
+\begin{example}[具体例子：$f(x) = kx^2$ 的梯度下降]
+
+取 $f(x) = kx^2$，$k > 0$，最优解显然是 $x^* = 0$，$f^* = 0$。
+
+\textbf{第一步：确定 $L$ 和 $\mu$}
+
+$f''(x) = 2k$（常数），故 $f$ 同时是 $L = 2k$-光滑的和 $\mu = 2k$-强凸的，条件数 $\kappa = L/\mu = 1$。
+
+\textbf{第二步：写出迭代格式}
+
+$\nabla f(x) = 2kx$，梯度下降：
+\[
+x_{t+1} = x_t - \alpha \cdot 2k x_t = (1 - 2k\alpha)\, x_t
+\]
+
+记收缩因子 $\rho = 1 - 2k\alpha$，递归展开得\textbf{闭合公式}：
+\[
+\boxed{x_t = \rho^t\, x_0 = (1 - 2k\alpha)^t\, x_0}
+\]
+
+\textbf{第三步：分析不同步长的行为}
+
+\begin{center}
+\begin{tabular}{c|c|c|l}
+步长 $\alpha$ & $\rho = 1-2k\alpha$ & $|\rho|$ & 行为 \\
+\hline
+$\dfrac{1}{2k}$（$= 1/L$，最优） & $0$ & $0$ & \textbf{一步收敛}！$x_1 = 0$ \\[6pt]
+$\dfrac{1}{4k}$ & $\dfrac{1}{2}$ & $0.5$ & 单调收敛，每步误差减半 \\[6pt]
+$\dfrac{3}{4k}$ & $-\dfrac{1}{2}$ & $0.5$ & 振荡收敛（正负交替，幅度减半） \\[6pt]
+$\dfrac{1}{k}$（$= 2/L$，临界） & $-1$ & $1$ & 永远振荡，不收敛 \\[6pt]
+$> \dfrac{1}{k}$ & $|\rho|>1$ & $>1$ & 发散（步长太大）
+\end{tabular}
+\end{center}
+
+\textbf{直觉图}（$k=1$，$x_0 = 1$，不同步长的轨迹）：
+
+\begin{center}
+\begin{tikzpicture}[scale=0.95]
+    \draw[->] (-0.3, 0) -- (7.5, 0) node[right] {迭代次数 $t$};
+    \draw[->] (0, -1.5) -- (0, 1.5) node[above] {$x_t$};
+    \draw[dashed, gray] (0, 0) -- (7.5, 0);
+
+    % alpha = 1/(2k): 一步收敛
+    \draw[myblue, very thick] (0,1) -- (1,0) -- (7,0);
+    \foreach \x in {0,1,2,3,4,5,6,7} {
+        \fill[myblue] (\x, {ifthenelse(\x==0,1,0)}) circle (2pt);
+    }
+    \node[myblue, right, font=\small] at (7.1, 0.15) {$\alpha = 1/(2k)$};
+
+    % alpha = 1/(4k): 单调收敛 rho=0.5
+    \draw[mygreen, thick] plot[domain=0:7, samples=8] (\x, {0.5^\x});
+    \foreach \x in {0,1,2,3,4,5,6,7} {
+        \fill[mygreen] (\x, {0.5^\x}) circle (2pt);
+    }
+    \node[mygreen, right, font=\small] at (7.1, {0.5^7 + 0.1}) {$\alpha = 1/(4k)$};
+
+    % alpha = 3/(4k): 振荡收敛 rho=-0.5
+    \draw[myorange, thick] plot[domain=0:7, samples=8] (\x, {(-0.5)^\x});
+    \foreach \x in {0,1,2,3,4,5,6,7} {
+        \fill[myorange] (\x, {(-0.5)^\x}) circle (2pt);
+    }
+    \node[myorange, right, font=\small] at (7.1, {(-0.5)^7 - 0.15}) {$\alpha = 3/(4k)$（振荡）};
+
+    % alpha = 1/k: 振荡不收敛 rho=-1
+    \foreach \x in {0,1,2,3,4} {
+        \fill[myred] (\x, {(-1)^\x}) circle (2pt);
+    }
+    \draw[myred, dashed, thick] (0,1) -- (1,-1) -- (2,1) -- (3,-1) -- (4,1);
+    \node[myred, right, font=\small] at (4.1, 1.1) {$\alpha = 1/k$（不收敛）};
+\end{tikzpicture}
+\end{center}
+
+\textbf{第四步：与一般理论对照}
+
+\begin{itemize}
+    \item 最优步长 $\alpha = 1/L = 1/(2k)$，此时 $\rho = 0$——$\kappa = 1$ 的情形理论预测 $(1-\mu/L)^T = 0^T = 0$，即一步精确到达，与计算一致。
+    \item 步长约束 $0 < \alpha < 1/k = 2/L$ 与充分下降引理的要求 $\alpha \leq 1/L$ 对应（$\alpha \leq 1/L$ 保证单调下降，$1/L < \alpha < 2/L$ 振荡但仍收敛，$\alpha \geq 2/L$ 发散）。
+    \item 误差公式 $|x_t - x^*| = |\rho|^t |x_0|$ 正是线性收敛 $O((1-\mu/L)^T)$ 的具体体现。
+\end{itemize}
+
+\end{example}
+
+\begin{insight}[为什么凸性保证梯度下降找到最优解？]
+
+核心逻辑链：
+
+\begin{enumerate}
+    \item \textbf{凸性 $\Rightarrow$ 局部 = 全局}：不存在"陷阱"式局部最优。
+    \item \textbf{$L$-光滑 $\Rightarrow$ 每步必下降}（充分下降引理）：梯度下降永远在改善。
+    \item \textbf{两者合并 $\Rightarrow$ 收敛到全局最优}：既然每步都在改善，且改善终点就是全局最优，梯度下降必然收敛至全局最优。
+\end{enumerate}
+
+对比非凸情形：满足下降引理，但可能收敛到局部最优——有下降保证，却无全局保证。
+
+\end{insight}
+
+%========================================
 \section{凸优化的标准形式}
 %========================================
+
+\begin{insight}[既然梯度下降能解无约束凸优化，为什么还要搞有约束的？]
+
+\textbf{问题}：上一节证明了，对无约束凸优化 $\min_x f(x)$，梯度下降必然收敛到全局最优。那为什么不把所有问题都写成无约束形式，直接梯度下降了事？
+
+\textbf{原因一：现实问题本身就有约束}
+
+很多约束无法"消掉"，它们是问题的本质：
+\begin{itemize}
+    \item \textbf{资源限制}：预算 $\leq$ 100 万、时间 $\leq$ 24 小时、库存 $\geq$ 0
+    \item \textbf{物理约束}：功率 $\leq$ 额定值、速度 $\leq$ 光速
+    \item \textbf{规则约束}：概率之和 $= 1$、流量守恒等式
+    \item \textbf{安全约束}：距离 $\geq$ 安全距离、应力 $\leq$ 材料极限
+\end{itemize}
+
+\textbf{原因二：硬约束 $\neq$ 罚函数}
+
+一种"逃脱"约束的思路是把约束加到目标函数里（罚函数法）：
+\[
+    \min_x f(x) + \rho \cdot \max(0,\, g(x))
+\]
+但这只是近似——罚函数法找到的解\textbf{一般不严格满足约束}，$\rho$ 调多大都只是逼近。而有些场景（安全、合规、物理可行性）要求约束\textbf{精确成立}，差一点都不行。
+
+\textbf{原因三：约束改变了最优解的位置}
+
+\begin{center}
+\begin{tikzpicture}[scale=1.1]
+    % 等高线
+    \foreach \r in {0.5, 1.0, 1.5, 2.0} {
+        \draw[blue!40, thin] (0,0) ellipse ({\r*1.5} and {\r*0.8});
+    }
+    % 无约束最优
+    \fill[blue] (0,0) circle (2.5pt) node[below right, font=\small] {无约束最优 $x^*$};
+    % 可行域
+    \fill[green!20, opacity=0.6] (1.0,-1.5) rectangle (3.5, 1.5);
+    \draw[green!60!black, thick] (1.0,-1.5) -- (1.0, 1.5);
+    \node[green!60!black, font=\small] at (2.3, 0) {可行域};
+    % 约束最优
+    \fill[red] (1.0, 0) circle (2.5pt) node[above right, font=\small] {约束最优 $x^*_c$};
+    % 箭头
+    \draw[->, dashed, thick, myred] (0,0) -- (0.85, 0);
+\end{tikzpicture}
+\end{center}
+
+无约束最优 $x^*$ 在可行域\textbf{之外}，梯度下降"直奔"$x^*$ 根本不会停在可行域边界上，给出的解是不可行的。
+
+\textbf{结论}：有约束凸优化 $\neq$ 无约束凸优化。我们需要专门的理论（Lagrangian、KKT 条件）来刻画约束最优解的结构，以及专门的算法（投影梯度下降、内点法、ADMM）来高效求解。
+
+\end{insight}
 
 \begin{blackboard}[凸优化的标准形式]
 
@@ -839,6 +1170,129 @@ f(\theta y + (1-\theta) x^*) \leq \theta f(y) + (1-\theta) f(x^*) < f(x^*)
 \]
 
 \end{blackboard}
+
+\begin{blackboard}[线性规划的两大算法：单纯形法与内点法]
+
+\textbf{问题规模}：$n$ 个变量，$m$ 条约束（$m \geq n$，标准形式）。
+
+\end{blackboard}
+
+\begin{blackboard}[单纯形法（Simplex Method）]
+
+\textbf{几何直觉}：LP 的最优解必然在可行多面体的\textbf{顶点}（极点）上。
+
+\begin{center}
+\begin{tikzpicture}[scale=0.85]
+    % 可行域
+    \fill[blue!10] (0,0) -- (4,0) -- (3,2) -- (1,3) -- (0,2) -- cycle;
+    \draw[thick] (0,0) -- (4,0) -- (3,2) -- (1,3) -- (0,2) -- cycle;
+    % 顶点
+    \foreach \p in {(0,0),(4,0),(3,2),(1,3),(0,2)} { \fill[blue] \p circle (2.5pt); }
+    % 目标函数等高线
+    \draw[red, dashed] (-0.2, 2.6) -- (3.5, 0.5) node[right, font=\small] {$c^Tx = $ const};
+    \draw[red, dashed] (-0.2, 3.6) -- (4, 1.0);
+    % 最优顶点
+    \fill[red] (1,3) circle (3pt) node[above right] {最优顶点};
+    % 路径
+    \draw[->, thick, mygreen] (0,0) -- (4,0);
+    \draw[->, thick, mygreen] (4,0) -- (3,2);
+    \draw[->, thick, mygreen] (3,2) -- (1,3);
+    \node[mygreen, font=\small] at (2.5,-0.4) {单纯形路径};
+\end{tikzpicture}
+\end{center}
+
+\textbf{算法框架}：
+
+\begin{enumerate}
+    \item \textbf{初始化}：找一个初始顶点（基可行解，BFS）。
+    \item \textbf{检验}：计算相邻顶点的目标值是否有改善（用\textbf{简约费用} $\bar{c}_j = c_j - c_B^T B^{-1} A_j$）。
+    \item \textbf{转轴}（Pivot）：若存在 $\bar{c}_j < 0$（最小化问题），沿该方向移动到相邻顶点（\textbf{换基}）。
+    \item \textbf{终止}：所有 $\bar{c}_j \geq 0$，当前顶点即最优。
+\end{enumerate}
+
+\textbf{每步操作}：更新基矩阵 $B$，求解 $B^{-1}$——每步代价 $O(mn)$（利用上次迭代的 LU 分解热启动）。
+
+\textbf{复杂度分析}：
+
+\begin{itemize}
+    \item \textbf{每步}：$O(mn)$
+    \item \textbf{步数（最坏）}：$O\!\left(\binom{n}{m}\right) = 2^{\Omega(n)}$（Klee-Minty 例子），理论上指数级
+    \item \textbf{步数（实践）}：通常 $O(m)$ 到 $O(3m)$ 步，实践中极快
+    \item \textbf{总体}：理论 NP（最坏），实践近似 $O(m^2 n)$（多项式行为）
+\end{itemize}
+
+\begin{keypoint}[单纯形法的悖论]
+最坏情况指数，但五十年来工程实践无敌。原因：实际问题的多面体"看起来"像球体（顶点数少、直径小），随机旋转规则下期望步数为 $O(m)$。
+\end{keypoint}
+
+\end{blackboard}
+
+\begin{blackboard}[内点法（Interior Point Method / Barrier Method）]
+
+\textbf{几何直觉}：不走顶点，而是走\textbf{可行域内部}，沿中心路径（central path）趋向最优点。
+
+\begin{center}
+\begin{tikzpicture}[scale=0.85]
+    \fill[blue!10] (0,0) -- (4,0) -- (3,2) -- (1,3) -- (0,2) -- cycle;
+    \draw[thick] (0,0) -- (4,0) -- (3,2) -- (1,3) -- (0,2) -- cycle;
+    \foreach \p in {(0,0),(4,0),(3,2),(1,3),(0,2)} { \fill[blue] \p circle (2.5pt); }
+    % 中心路径
+    \draw[red, thick, ->] (1.5,1.5) .. controls (1.3,2.0) and (1.1,2.5) .. (1,3);
+    \fill[red] (1.5,1.5) circle (2.5pt);
+    \fill[red] (1,3) circle (3pt) node[above right] {最优点};
+    \node[red, font=\small] at (2.8, 1.8) {中心路径};
+\end{tikzpicture}
+\end{center}
+
+\textbf{核心思路}：用对数障碍函数（log-barrier）将约束``软化''到目标里：
+\[
+\min_x \; c^T x - \frac{1}{t} \sum_{i=1}^m \ln(-g_i(x))
+\]
+随参数 $t \to \infty$，障碍项消失，解趋向原始最优解。
+
+每个固定 $t$ 下用 \textbf{Newton 法}求解（利用 Hessian 二阶信息），每步代价 $O(n^3)$（求解 $n\times n$ 线性方程组）或稀疏结构下更快。
+
+\textbf{复杂度分析}：
+
+\begin{itemize}
+    \item \textbf{每步（Newton 迭代）}：$O(n^3)$（稠密）或 $O(n^{1.5})$（稀疏/结构化）
+    \item \textbf{总步数}：$O(\sqrt{m} \log(1/\varepsilon))$——这是\textbf{多项式时间}！
+    \item \textbf{总体}：$O(n^3 \sqrt{m} \log(1/\varepsilon))$，理论上优于单纯形
+\end{itemize}
+
+$O(\sqrt{m})$ 步的来源：每次 $t$ 增大一个常数倍，中心路径的总"弯折程度"（自协调参数）为 $O(\sqrt{m})$。
+
+\textbf{对比总结}：
+
+\begin{center}
+\begin{tabular}{c|c|c|c}
+ & 单纯形法 & 内点法 & 说明 \\
+\hline
+每步代价 & $O(mn)$ & $O(n^3)$ 或 $O(n^{1.5})$ & 内点法每步更贵 \\
+步数（最坏） & 指数 & $O(\sqrt{m}\log 1/\varepsilon)$ & 内点法有理论保证 \\
+步数（实践） & $O(m)$ & $O(30\text{--}100)$ & 内点法步数几乎与规模无关 \\
+适合规模 & 中小型，稀疏 & 中等密集型 & 各有适用场景 \\
+热启动 & 容易 & 困难 & 重复求解时单纯形更快 \\
+解的性质 & 顶点解（稀疏） & 内部解（稠密） & 影响后续处理 \\
+\end{tabular}
+\end{center}
+
+\end{blackboard}
+
+\begin{insight}[为什么 LP 有多项式算法但还在用指数的单纯形法？]
+
+\begin{itemize}
+    \item \textbf{理论}：内点法 $O(n^{3.5} \log 1/\varepsilon)$ 是多项式时间，1984 年 Karmarkar 算法证明 LP $\in$ P。
+    \item \textbf{实践}：商业求解器（Gurobi、CPLEX）默认单纯形法，原因：
+    \begin{enumerate}
+        \item 单纯形法的每步代价 $O(mn)$ 远小于内点法 $O(n^3)$
+        \item 单纯形法解为顶点解（稀疏），便于热启动和整数规划
+        \item 对大多数实际 LP，单纯形法 $O(m)$ 步的实践表现无敌
+    \end{enumerate}
+    \item \textbf{规模极大时}：一阶方法（投影梯度下降、ADMM）取代两者，每步 $O(mn)$ 但无需因子分解。
+\end{itemize}
+
+\end{insight}
 
 %----------------------------------------
 \subsection{二次规划 (QP) 的例子}
@@ -1010,9 +1464,9 @@ f(\theta y + (1-\theta) x^*) \leq \theta f(y) + (1-\theta) f(x^*) < f(x^*)
 
 \begin{blackboard}[SDP 例子 1：MAX-CUT 松弛]
 
-\textbf{MAX-CUT 问题}：把图的顶点分成两组，最大化跨组的边数
+\textbf{MAX-CUT 问题}：把图 $G=(V,E)$ 的顶点分成两组 $S$ 和 $\bar{S}$，最大化跨组的边数（或加权边权之和）。
 
-\textbf{具体例子}：4个顶点的图
+\textbf{具体例子}：4个顶点、5条边的图
 
 \begin{center}
 \begin{tikzpicture}[scale=1]
@@ -1020,106 +1474,234 @@ f(\theta y + (1-\theta) x^*) \leq \theta f(y) + (1-\theta) f(x^*) < f(x^*)
     \node[draw, circle, fill=red!30] (2) at (2, 1) {2};
     \node[draw, circle, fill=blue!30] (3) at (2, -1) {3};
     \node[draw, circle, fill=blue!30] (4) at (0, -1) {4};
-    
+
     \draw[thick] (1) -- (2) node[midway, above] {1};
     \draw[thick] (2) -- (3) node[midway, right] {1};
     \draw[thick] (3) -- (4) node[midway, below] {1};
     \draw[thick] (4) -- (1) node[midway, left] {1};
     \draw[thick] (1) -- (3) node[midway, above right] {1};
-    
+
     \node at (5, 0) {切割 $\{1,2\}$ vs $\{3,4\}$};
     \node at (5, -0.6) {跨组边数 = 4};
 \end{tikzpicture}
 \end{center}
 
-\textbf{原问题}：设 $x_i \in \{-1, +1\}$（+1 表示第一组，-1 表示第二组）
+\textbf{第一步：整数规划建模}
+
+令 $x_i \in \{-1, +1\}$：$+1$ 表示顶点 $i$ 在 $S$，$-1$ 表示在 $\bar{S}$。
+
+边 $(i,j)$ 被切割 $\Leftrightarrow$ $x_i \neq x_j$ $\Leftrightarrow$ $x_ix_j = -1$ $\Leftrightarrow$ $\frac{1-x_ix_j}{2} = 1$。
+
+原问题（NP-Hard 整数规划）：
 \[
-\max \sum_{(i,j) \in E} \frac{1 - x_i x_j}{2}
-\]
-当 $x_i \neq x_j$ 时，$(1 - x_i x_j)/2 = 1$；相同时为 0
-
-\textbf{SDP 松弛}：把 $x_i \in \{-1, +1\}$ 松弛为单位向量 $v_i \in \mathbb{R}^n$
-
-设 $X_{ij} = v_i^T v_j$，则 $X \succeq 0$（Gram 矩阵）且 $X_{ii} = 1$
-
-\[
-\max \sum_{(i,j) \in E} \frac{1 - X_{ij}}{2} \quad \text{s.t.} \quad X \succeq 0, \; X_{ii} = 1
+\max_{x_i \in \{-1,+1\}} \sum_{(i,j)\in E} \frac{1-x_ix_j}{2}
 \]
 
-\textbf{上例的 SDP}：5条边，最大化 $\frac{1}{2}(5 - X_{12} - X_{23} - X_{34} - X_{14} - X_{13})$
+\textbf{第二步：SDP 松弛}
+
+关键观察：$x_ix_j$（标量乘积）$\longrightarrow$ $v_i^Tv_j$（向量内积），把每个 $x_i \in \{-1,+1\}$ 替换为单位向量 $v_i \in \mathbb{R}^n$，$\|v_i\|_2 = 1$。
+
+定义矩阵 $X_{ij} = v_i^Tv_j$（Gram 矩阵）。Gram 矩阵天然满足：
+\begin{itemize}
+    \item $X \succeq 0$（半正定）：因为 $u^TXu = \|\sum_i u_i v_i\|^2 \geq 0$
+    \item $X_{ii} = v_i^Tv_i = \|v_i\|^2 = 1$（对角元为 1）
+\end{itemize}
+
+SDP 松弛（以 $X$ 为变量，$X \in \mathbb{R}^{4\times 4}$）：
+\[
+\max_X \; \frac{1}{2}\sum_{(i,j)\in E}(1 - X_{ij})
+\quad \text{s.t.} \quad X \succeq 0, \quad X_{ii} = 1 \;\; \forall i
+\]
+
+本例目标：$\max \frac{1}{2}(5 - X_{12} - X_{23} - X_{34} - X_{14} - X_{13})$
+
+\textbf{为什么这是松弛？}原整数解 $x_i\in\{-1,+1\}$ 对应秩-1 的 $X$（$X = xx^T$），而 SDP 允许任意秩的半正定矩阵，可行域更大，最优值 $\geq$ 原整数问题最优值。
+
+\textbf{第三步：从 SDP 解恢复切割（Goemans-Williamson 随机舍入）}
+
+SDP 求解后得到 $X^*$，对其做 Cholesky 分解 $X^* = V^TV$，得到单位向量 $v_1,\ldots,v_4$。
+
+随机舍入：均匀随机选一个超平面法向量 $r \sim \mathcal{N}(0, I)$，令
+\[
+x_i = \text{sign}(r^T v_i)
+\]
+
+\textbf{Goemans-Williamson 定理}：该算法输出的期望切割值 $\geq 0.878 \times \text{OPT}$（$\text{OPT}$ 为真实最优值），这是目前已知最好的多项式时间近似比。
+
+\begin{center}
+\begin{tikzpicture}[scale=0.85]
+    \draw[->, thick] (-2.5, 0) -- (2.5, 0);
+    \draw[->, thick] (0, -2.5) -- (0, 2.5);
+    \draw[dashed, orange, thick] (-2, -1.5) -- (2, 1.5) node[right] {随机超平面};
+    \foreach \a/\lab in {30/1, 150/2, 200/3, 320/4} {
+        \draw[->, thick, blue] (0,0) -- ({1.5*cos(\a)}, {1.5*sin(\a)});
+        \node[blue] at ({1.8*cos(\a)}, {1.8*sin(\a)}) {\small $v_{\lab}$};
+    }
+    \node at (0, -3.2) {超平面两侧分别染色 → 切割};
+\end{tikzpicture}
+\end{center}
 
 \end{blackboard}
 
-\begin{blackboard}[SDP 例子 2：控制系统稳定性]
+\begin{blackboard}[SDP 例子 2：控制系统稳定性（Lyapunov LMI）]
 
-\textbf{场景}：线性系统 $\dot{x} = Ax$，判断是否稳定
+\textbf{场景}：线性时不变系统 $\dot{x}(t) = Ax(t)$，$x \in \mathbb{R}^n$，判断是否渐近稳定（即 $x(t) \to 0$）。
+
+\textbf{直接方法}：看矩阵 $A$ 的特征值是否全部有负实部——但这不能推广到有不确定性或时变的系统。SDP 方法更通用。
+
+\textbf{Lyapunov 稳定性理论}
+
+\textbf{Lyapunov 函数}：类比"能量"，若能找到一个正的"能量函数" $V(x)$ 沿轨迹严格递减，则系统稳定。
+
+取 $V(x) = x^T P x$，$P \succ 0$（正定二次型）。沿轨迹求导：
+\[
+\dot{V}(x) = \dot{x}^T P x + x^T P \dot{x}
+= x^T A^T P x + x^T P A x
+= x^T \underbrace{(A^T P + PA)}_{=:Q} x
+\]
+
+要 $V$ 沿轨迹严格递减，需要 $\dot{V}(x) < 0$ 对所有 $x\neq 0$，即 $Q \prec 0$（负定）。
+
+\begin{theorem}[Lyapunov 定理]
+线性系统 $\dot{x}=Ax$ 渐近稳定 $\Longleftrightarrow$ 存在 $P \succ 0$ 使得 $A^TP + PA \prec 0$
+\end{theorem}
+
+\textbf{建模为 SDP 可行性问题}
+
+变量：对称矩阵 $P \in \mathbb{R}^{n\times n}$（共 $n(n+1)/2$ 个自由度）
+
+\textbf{约束均为线性矩阵不等式（LMI）}：
+\[
+\text{Find } P \quad \text{s.t.} \quad P \succ 0, \quad A^TP + PA \prec 0
+\]
+
+这直接就是 SDP 可行性问题（目标函数取常数 0 即可）。
 
 \textbf{具体例子}：
 \[
-A = \begin{pmatrix} -1 & 2 \\ 0 & -3 \end{pmatrix}
+A = \begin{pmatrix} -1 & 2 \\ 0 & -3 \end{pmatrix}, \qquad
+P = \begin{pmatrix} p_{11} & p_{12} \\ p_{12} & p_{22} \end{pmatrix}
 \]
 
-\textbf{Lyapunov 定理}：系统稳定 $\Leftrightarrow$ 存在 $P \succ 0$ 使得 $A^T P + P A \prec 0$
-
-\textbf{设} $P = \begin{pmatrix} p_{11} & p_{12} \\ p_{12} & p_{22} \end{pmatrix}$，需要：
-
-\textbf{条件1}：$P \succ 0$
+展开 $Q = A^TP + PA$：
 \[
-p_{11} > 0, \quad p_{11} p_{22} - p_{12}^2 > 0
+A^TP + PA
+= \begin{pmatrix} -1 & 0 \\ 2 & -3 \end{pmatrix}\begin{pmatrix} p_{11} & p_{12} \\ p_{12} & p_{22} \end{pmatrix}
++ \begin{pmatrix} p_{11} & p_{12} \\ p_{12} & p_{22} \end{pmatrix}\begin{pmatrix} -1 & 2 \\ 0 & -3 \end{pmatrix}
+= \begin{pmatrix} -2p_{11} & 2p_{11} - p_{12} - 3p_{12} \\ \cdot & 4p_{12} - 6p_{22} \end{pmatrix}
 \]
 
-\textbf{条件2}：$A^T P + P A \prec 0$
+整理（利用对称性）：
 \[
-A^T P + P A = \begin{pmatrix} -2p_{11} & 2p_{11} - 4p_{12} \\ 2p_{11} - 4p_{12} & 4p_{12} - 6p_{22} \end{pmatrix} \prec 0
+Q = \begin{pmatrix} -2p_{11} & 2p_{11} - 4p_{12} \\ 2p_{11} - 4p_{12} & 4p_{12} - 6p_{22} \end{pmatrix}
 \]
 
-\textbf{一个解}：$P = \begin{pmatrix} 1 & 0 \\ 0 & 1 \end{pmatrix}$
+\textbf{SDP 求解}：取 $P = I$（$p_{11}=p_{22}=1$，$p_{12}=0$）验证：
+\[
+Q = \begin{pmatrix} -2 & 2 \\ 2 & -6 \end{pmatrix}
+\]
 
-验证：$A^T P + P A = \begin{pmatrix} -2 & 2 \\ 2 & -6 \end{pmatrix}$
+验证 $Q \prec 0$：特征值 $= -4 \pm \sqrt{8} \approx -1.17,\, -6.83$，均 $< 0$。\checkmark
 
-特征值：$-4 \pm \sqrt{8} \approx -1.17, -6.83 < 0$ \checkmark
+\textbf{进阶：最优化 Lyapunov 函数}
 
-\textbf{结论}：系统稳定！（也可以直接看 $A$ 的特征值 $-1, -3 < 0$）
+可以把可行性问题改为优化问题，例如最大化 $P$ 最小特征值（增强稳定裕度）：
+\[
+\max_{P,\,\gamma} \quad \gamma
+\quad \text{s.t.} \quad P \succeq \gamma I, \quad A^TP + PA \preceq -\gamma I
+\]
+仍然是 SDP，但现在有了意义明确的优化目标。
+
+\textbf{推广}：对含不确定性的系统 $\dot{x} = (A + \Delta)x$，$\|\Delta\| \leq \epsilon$，鲁棒稳定性条件也能写成 LMI——这是 SDP 在控制领域的核心优势。
 
 \end{blackboard}
 
-\begin{blackboard}[SDP 例子 3：矩阵补全]
+\begin{blackboard}[SDP 例子 3：矩阵补全（核范数最小化）]
 
-\textbf{场景}：Netflix 评分矩阵，只观察到部分评分
+\textbf{场景}：观察到矩阵 $M \in \mathbb{R}^{m\times n}$ 的部分元素（由已知下标集 $\Omega$ 索引），恢复完整矩阵。
 
-\textbf{具体例子}：3个用户对4部电影的评分（? 表示未知）
+\textbf{具体例子}：3个用户对4部电影的评分（? 表示未观测）
 
 \[
-M = \begin{pmatrix} 
+M = \begin{pmatrix}
 5 & ? & 4 & ? \\
 ? & 3 & ? & 2 \\
 4 & ? & 5 & ?
-\end{pmatrix}
+\end{pmatrix}, \quad
+\Omega = \{(1,1),(1,3),(2,2),(2,4),(3,1),(3,3)\}
 \]
 
-\textbf{假设}：评分矩阵是低秩的（用户偏好可用少数因子描述）
+\textbf{第一步：低秩假设}
 
-例如：用户分为``动作片爱好者''和``文艺片爱好者''，电影也分两类
+为什么矩阵是低秩的？用户 $\approx$ 少数几个"口味类型"的线性组合，电影 $\approx$ 少数几个"题材特征"的线性组合，因此评分矩阵 $\approx$ 秩 $r \ll \min(m,n)$ 的矩阵。
 
-\textbf{核范数最小化}（低秩的凸松弛）：
+秩-1 示例：若所有用户只按"动作 vs 文艺"分类：
 \[
-\min_X \|X\|_* \quad \text{s.t.} \quad X_{11} = 5, X_{13} = 4, X_{22} = 3, X_{24} = 2, X_{31} = 4, X_{33} = 5
+M = \underbrace{\begin{pmatrix}0.9\\0.4\\0.8\end{pmatrix}}_{\text{用户偏好}}
+\underbrace{\begin{pmatrix}0.9 & 0.6 & 0.8 & 0.5\end{pmatrix}}_{\text{电影特征}}
 \]
 
-\textbf{SDP 形式}：$\|X\|_* = \min \frac{1}{2}(\text{tr}(W_1) + \text{tr}(W_2))$
+\textbf{第二步：为何直接最小化秩行不通？}
 
+最直接的建模：$\min_X \text{rank}(X) \;\;\text{s.t.}\;\; X_{ij} = M_{ij}, \forall (i,j)\in\Omega$
+
+但 $\text{rank}(X)$ 是\textbf{非凸函数}（组合优化，NP-Hard）。
+
+\textbf{第三步：核范数——秩的凸松弛}
+
+\textbf{核范数}（nuclear norm）：$\|X\|_* = \sum_k \sigma_k(X)$，其中 $\sigma_k$ 是奇异值。
+
+类比：
+\begin{center}
+\begin{tabular}{c|c|c}
+量 & 非凸原版 & 凸松弛 \\
+\hline
+向量稀疏度 & $\|x\|_0$（非零元个数） & $\|x\|_1$（L1 范数） \\
+矩阵秩 & $\text{rank}(X)$ & $\|X\|_*$（核范数）
+\end{tabular}
+\end{center}
+
+\textbf{直觉}：$\text{rank}(X)$ = 非零奇异值的个数（L0"范数"），$\|X\|_*$ = 奇异值之和（L1 范数），最小化核范数会促使尽量多的奇异值为零，即低秩。
+
+核范数最小化问题：
 \[
-\text{s.t.} \quad \begin{pmatrix} W_1 & X \\ X^T & W_2 \end{pmatrix} \succeq 0
+\min_X \|X\|_* \quad \text{s.t.} \quad X_{ij} = M_{ij}, \quad \forall (i,j)\in\Omega
 \]
 
-\textbf{可能的补全结果}（秩-1近似）：
+\textbf{第四步：转化为 SDP}
+
+\textbf{核范数的 SDP 等价表示}：
 \[
-\hat{M} \approx \begin{pmatrix} 
-5 & 3 & 4 & 2.4 \\
-3 & 3 & 2.4 & 2 \\
+\|X\|_* = \min_{W_1, W_2} \;\frac{1}{2}\bigl(\operatorname{tr}(W_1) + \operatorname{tr}(W_2)\bigr)
+\quad \text{s.t.} \quad
+\begin{pmatrix} W_1 & X \\ X^T & W_2 \end{pmatrix} \succeq 0
+\]
+
+\textbf{推导直觉}：由 Schur 补，$\begin{pmatrix}W_1 & X \\ X^T & W_2\end{pmatrix}\succeq 0$ 等价于 $W_1 \succeq XW_2^{-1}X^T$，迫使 $W_1$ 的迹覆盖 $X$ 的"能量"（奇异值），取最小值时恰好等于 $\|X\|_*$。
+
+完整 SDP（变量：$X\in\mathbb{R}^{3\times 4}$，$W_1\in\mathbb{R}^{3\times 3}$，$W_2\in\mathbb{R}^{4\times 4}$）：
+\[
+\begin{aligned}
+\min_{X,W_1,W_2} \quad & \frac{1}{2}\bigl(\operatorname{tr}(W_1) + \operatorname{tr}(W_2)\bigr) \\
+\text{s.t.} \quad &
+\begin{pmatrix} W_1 & X \\ X^T & W_2 \end{pmatrix} \succeq 0 \\
+& X_{11}=5,\; X_{13}=4,\; X_{22}=3,\; X_{24}=2,\; X_{31}=4,\; X_{33}=5
+\end{aligned}
+\]
+
+\textbf{第五步：解读结果}
+
+SDP 解出后，$X^*$ 即为补全矩阵（满足已知约束的最低秩近似）：
+
+\[
+\hat{M} \approx \begin{pmatrix}
+5 & 3.0 & 4 & 2.4 \\
+3.0 & 3 & 2.4 & 2 \\
 4 & 2.4 & 5 & 1.6
 \end{pmatrix}
 \]
+
+\textbf{理论保证（Candès \& Recht, 2009）}：若真实矩阵秩为 $r$，且观测下标足够随机，则只需观测约 $O(rn\log n)$ 个元素，核范数最小化能以概率趋于 1 精确恢复完整矩阵。
 
 \end{blackboard}
 
@@ -1222,6 +1804,42 @@ g(\lambda, \nu) &= \inf_x L(x, \lambda, \nu) \\
 
 \end{blackboard}
 
+\begin{blackboard}[计算例子：拉格朗日乘子法（等式约束）]
+
+\textbf{问题}：求离原点最近的直线 $x_1 + x_2 = 1$ 上的点。
+\[
+\min_{x_1, x_2} \;\; x_1^2 + x_2^2 \quad \text{s.t.} \quad x_1 + x_2 = 1
+\]
+
+\textbf{第一步：写 Lagrangian}（等式约束引入无约束乘子 $\nu \in \mathbb{R}$）
+\[
+L(x_1, x_2, \nu) = x_1^2 + x_2^2 + \nu(x_1 + x_2 - 1)
+\]
+
+\textbf{第二步：一阶最优性条件}（$\nabla_x L = 0$，无不等式约束，直接求导）
+\[
+\frac{\partial L}{\partial x_1} = 2x_1 + \nu = 0 \implies x_1 = -\frac{\nu}{2}
+\]
+\[
+\frac{\partial L}{\partial x_2} = 2x_2 + \nu = 0 \implies x_2 = -\frac{\nu}{2}
+\]
+
+\textbf{第三步：代入等式约束}
+\[
+x_1 + x_2 = 1 \implies -\frac{\nu}{2} - \frac{\nu}{2} = 1 \implies \nu = -1
+\]
+
+\textbf{第四步：代回得最优解}
+\[
+x_1^* = x_2^* = \frac{1}{2}, \quad \nu^* = -1, \quad f^* = \frac{1}{4} + \frac{1}{4} = \frac{1}{2}
+\]
+
+\textbf{几何验证}：直线 $x_1 + x_2 = 1$ 法方向为 $(1,1)/\sqrt{2}$，原点到直线的垂足正是 $(1/2, 1/2)$，距离 $= 1/\sqrt{2}$，$f^* = 1/2 = (1/\sqrt{2})^2$ ✓
+
+\textbf{$\nu$ 的含义（影子价格）}：$\nu^* = -1$ 表示若将约束右端从 1 增大到 $1+\epsilon$，最优值近似变化 $-\nu^* \cdot \epsilon = \epsilon$（距离增大，费用上升）。
+
+\end{blackboard}
+
 %========================================
 \section{弱对偶与强对偶}
 %========================================
@@ -1267,7 +1885,165 @@ g_i(\tilde{x}) < 0, \quad i = 1, \ldots, m; \quad h_j(\tilde{x}) = 0, \quad j = 
 
 \end{blackboard}
 
-\begin{insight}[对偶的价值]
+\begin{blackboard}[Slater 条件的证明 $\bigstar$]
+
+\textbf{目标}：证明 $d^* = p^*$。由弱对偶 $d^* \leq p^*$，只需证 $d^* \geq p^*$。
+
+\textbf{证明思路}：构造两个不相交的凸集，用分离超平面定理"找出"对偶最优解，再用 Slater 条件排除退化情形。
+
+\vspace{0.5em}
+\textbf{第一步：构造两个不相交的凸集}
+
+定义"可达值域"（含松弛）：
+\[
+\mathcal{A} = \bigl\{(u,\, v,\, t) \in \mathbb{R}^m \times \mathbb{R}^p \times \mathbb{R}
+  \;\big|\; \exists\, x \in \mathcal{D}:\; g(x) \preceq u,\; h(x) = v,\; f(x) \leq t \bigr\}
+\]
+
+定义"比最优值更好"的集合：
+\[
+\mathcal{B} = \{(u, v, t) : u \preceq 0,\; v = 0,\; t < p^*\}
+\]
+
+\begin{enumerate}
+    \item $\mathcal{A}$ 是凸集：若 $(u_1, v_1, t_1), (u_2, v_2, t_2) \in \mathcal{A}$，由 $f$、$g_i$ 的凸性可验证其凸组合也在 $\mathcal{A}$ 内。
+    \item $\mathcal{B}$ 是凸集（线性约束定义的集合）。
+    \item $\mathcal{A} \cap \mathcal{B} = \emptyset$：若有 $(u,v,t) \in \mathcal{A} \cap \mathcal{B}$，则存在 $x$ 满足 $g(x) \preceq u \preceq 0$、$h(x) = v = 0$、$f(x) \leq t < p^*$——即 $x$ 可行且 $f(x) < p^*$，与 $p^*$ 是最优值矛盾。
+\end{enumerate}
+
+\textbf{第二步：分离超平面定理}
+
+$\mathcal{A}$ 与 $\mathcal{B}$ 均为凸集且不相交，由分离超平面定理，存在 $(\lambda, \nu, \mu) \neq 0$，使得
+\[
+\lambda^T u + \nu^T v + \mu\, t \;\geq\; \lambda^T s + \mu\, r
+\quad \forall\, (u,v,t)\in\mathcal{A},\; (s, 0, r) \in \mathcal{B} \tag{$\star$}
+\]
+
+从 $\mathcal{B}$ 的自由度推出符号约束：
+\begin{itemize}
+    \item 令 $s_i \to -\infty$（$s \preceq 0$ 可任意负）：若某个 $\lambda_i < 0$，右边趋于 $+\infty$，违反 ($\star$)，故 $\lambda \geq 0$。
+    \item 令 $r \to -\infty$（$r < p^*$ 可任意负）：同理推出 $\mu \geq 0$。
+\end{itemize}
+
+\textbf{第三步：用 Slater 条件证 $\mu > 0$（关键步骤）}
+
+假设 $\mu = 0$。将严格可行点 $\tilde{x}$（满足 $g_i(\tilde{x}) < 0$，$h_j(\tilde{x}) = 0$）代入 ($\star$) 左边，取 $s = 0$，$r$ 任意：
+
+\[
+\lambda^T g(\tilde{x}) + \nu^T \underbrace{h(\tilde{x})}_{=0} \;\geq\; \lambda^T \cdot 0 = 0
+\;\implies\;
+\lambda^T g(\tilde{x}) \geq 0
+\]
+
+但 $\lambda \geq 0$ 且 $g_i(\tilde{x}) < 0$，故 $\lambda^T g(\tilde{x}) \leq 0$。
+
+两者合并得 $\lambda^T g(\tilde{x}) = 0$，又因为 $\lambda_i \geq 0$ 且 $g_i(\tilde{x}) < 0$，每个乘积 $\lambda_i g_i(\tilde{x}) \leq 0$，因此每项必须为零，即 $\lambda = 0$。
+
+此时 $\mu = 0$，$\lambda = 0$，但 $(\lambda, \nu, \mu) \neq 0$ 要求 $\nu \neq 0$。然而 $h_j$ 是仿射函数（满射），$\nu^T h(x)$ 无界，无法被 ($\star$) 左边一致下界——矛盾。
+
+故 $\mu > 0$。
+
+\textbf{第四步：构造对偶最优解}
+
+对任意 $x \in \mathcal{D}$，$(u,v,t) = (g(x),h(x),f(x)) \in \mathcal{A}$，在 ($\star$) 中令 $s = 0$，$r \to (p^*)^-$：
+\[
+\lambda^T g(x) + \nu^T h(x) + \mu f(x) \;\geq\; \mu p^*
+\]
+
+两边除以 $\mu > 0$，令 $\lambda^* = \lambda/\mu$，$\nu^* = \nu/\mu$：
+\[
+f(x) + (\lambda^*)^T g(x) + (\nu^*)^T h(x) \;\geq\; p^* \quad \forall x \in \mathcal{D}
+\]
+
+对 $x$ 取下确界，注意左边正是 Lagrangian，得：
+\[
+g(\lambda^*, \nu^*) = \inf_x\, L(x, \lambda^*, \nu^*) \;\geq\; p^*
+\]
+
+故 $d^* = \sup_{\lambda \geq 0,\, \nu} g(\lambda, \nu) \geq g(\lambda^*, \nu^*) \geq p^*$。
+
+\textbf{第五步：结论}
+
+由弱对偶 $d^* \leq p^*$ 与上面的 $d^* \geq p^*$：
+\[
+\boxed{d^* = p^*} \qquad \square
+\]
+
+\end{blackboard}
+
+\begin{insight}[Slater 条件在证明中哪里起了作用？]
+
+证明的关键是排除退化情形 $\mu = 0$：
+\begin{itemize}
+    \item 若 $\mu = 0$，超平面的法向量中"目标函数方向"消失，超平面完全由约束驱动，无法给出有意义的对偶变量。
+    \item Slater 条件（严格可行点）保证了 $\lambda^T g(\tilde{x}) < 0$ 的可能性，迫使 $\lambda = 0$，从而与 $\nu \neq 0$ 产生矛盾。
+    \item 本质上：严格可行点使得可行域"有内点"，排除了约束退化（线性无关约束失效）的情形。
+\end{itemize}
+
+\textbf{反例}（Boyd \& Vandenberghe）：若 Slater 条件不满足，强对偶可能失败。考虑如下凸优化问题：
+\[
+\min_{x_1, x_2} \; e^{-x_1} \quad \text{s.t.} \quad \frac{x_1^2}{x_2} \leq 0, \quad \mathcal{D} = \{(x_1, x_2) \mid x_2 > 0\}
+\]
+目标函数 $e^{-x_1}$ 和约束函数 $x_1^2/x_2$（$x_1^2$ 的透视函数）均为凸函数，这确实是一个凸优化问题。
+
+\textbf{Slater 条件为何失效}：要求存在 $x_2 > 0$ 使 $x_1^2/x_2 < 0$，但分子 $x_1^2 \geq 0$、分母 $x_2 > 0$，故 $x_1^2/x_2 \geq 0$ 恒成立，严格可行点不存在。
+
+\textbf{原问题最优值}：约束 $x_1^2/x_2 \leq 0$ 与定义域 $x_2 > 0$ 联合要求 $x_1 = 0$，可行域为射线 $\{(0, x_2) \mid x_2 > 0\}$，目标值恒为 $e^0 = 1$，故 $p^* = 1$。
+
+\textbf{对偶问题最优值}：拉格朗日函数 $L = e^{-x_1} + \lambda x_1^2/x_2$（$\lambda \geq 0$）。固定任意 $\lambda \geq 0$，令 $x_1 \to +\infty$ 且 $x_2 = x_1^3$，则
+\[
+e^{-x_1} \to 0, \qquad \lambda \cdot \frac{x_1^2}{x_1^3} = \frac{\lambda}{x_1} \to 0
+\]
+故 $g(\lambda) = \inf L = 0$，从而 $d^* = \max_{\lambda \geq 0} g(\lambda) = 0$。
+
+\textbf{对偶间隙}：$p^* - d^* = 1 - 0 = 1 > 0$，强对偶失败。
+
+\end{insight}
+
+\begin{blackboard}[具体实例：LP 的 Lagrangian 对偶推导]
+
+上面的理论对 LP 成立，且可以精确写出对偶问题的形式。
+
+\textbf{原始问题}（标准不等式形式）：
+\[
+p^* = \min_{x \geq 0} \; c^T x \quad \text{s.t.} \quad Ax \geq b
+\]
+
+\textbf{第一步：写 Lagrangian}（不等式约束 $b - Ax \leq 0$ 引入 $\lambda \geq 0$，非负约束 $-x \leq 0$ 引入 $\mu \geq 0$）：
+\[
+L(x, \lambda, \mu)
+= c^T x + \lambda^T(b - Ax) - \mu^T x
+= \underbrace{(c - A^T\lambda - \mu)^T}_{\text{$x$ 的系数}} x + \lambda^T b
+\]
+
+\textbf{第二步：对 $x$ 取下确界}（$x$ 此时无约束，非负已由 $\mu$ 接管）：
+\[
+g(\lambda, \mu) = \inf_{x \in \mathbb{R}^n} \left[(c - A^T\lambda - \mu)^T x + \lambda^T b\right]
+= \begin{cases} \lambda^T b & \text{若 } c - A^T\lambda - \mu = 0 \\ -\infty & \text{否则} \end{cases}
+\]
+
+仿射函数 $a^T x$ 若 $a \neq 0$ 则无下界；只有 $a = 0$ 时下确界有限。
+
+\textbf{第三步：写对偶问题}（$\max$ 自动排除 $g = -\infty$，即强制 $\mu = c - A^T\lambda \geq 0$）：
+\[
+\boxed{d^* = \max_{\lambda \geq 0} \; b^T\lambda \quad \text{s.t.} \quad A^T\lambda \leq c}
+\]
+
+\textbf{对称美}：
+
+\begin{center}
+\begin{tabular}{c|cc}
+ & 原始问题 & 对偶问题 \\
+\hline
+变量 & $x \geq 0$ & $\lambda \geq 0$ \\
+目标 & $\min\; c^T x$ & $\max\; b^T\lambda$ \\
+约束 & $Ax \geq b$ & $A^T\lambda \leq c$ \\
+\end{tabular}
+\end{center}
+
+约束矩阵转置，目标系数与约束右端互换。\textbf{对偶的对偶恢复原始问题}（LP 满足 Slater 条件 $\Leftrightarrow$ 有严格可行的内点，从而强对偶成立，$d^* = p^*$）。
+
+\end{blackboard}
 
 \textbf{1. 提供下界}：即使不能解原问题，对偶给出最优值的界
 
@@ -1411,6 +2187,243 @@ g_i(x^*) \leq 0, \quad h_j(x^*) = 0
 
 \end{blackboard}
 
+\begin{blackboard}[计算例子：KKT 条件（不等式约束，需分情况讨论）]
+
+\textbf{问题}：求平面上满足 $x_1 + 2x_2 \geq 3$ 的区域中离原点最近的点。
+\[
+\min_{x_1, x_2} \;\; x_1^2 + x_2^2 \quad \text{s.t.} \quad x_1 + 2x_2 \geq 3
+\]
+
+\textbf{转换为标准形式}（$g(x) \leq 0$）：令 $g(x) = 3 - x_1 - 2x_2 \leq 0$，乘子 $\lambda \geq 0$。
+
+\textbf{Lagrangian}：
+\[
+L(x_1, x_2, \lambda) = x_1^2 + x_2^2 + \lambda(3 - x_1 - 2x_2)
+\]
+
+\textbf{KKT 条件}：
+\begin{enumerate}
+    \item \textbf{稳定性}（$\nabla_x L = 0$）：$2x_1 - \lambda = 0$，$2x_2 - 2\lambda = 0$
+    \item \textbf{原始可行}：$x_1 + 2x_2 \geq 3$
+    \item \textbf{对偶可行}：$\lambda \geq 0$
+    \item \textbf{互补松弛}：$\lambda(3 - x_1 - 2x_2) = 0$
+\end{enumerate}
+
+\textbf{分两种情况}：
+
+\textbf{情况一：约束不紧（$\lambda = 0$）}
+
+由稳定性：$x_1 = 0, x_2 = 0$。但 $(0,0)$ 不满足 $x_1 + 2x_2 \geq 3$，违反原始可行。\textbf{舍去}。
+
+\textbf{情况二：约束有效（$x_1 + 2x_2 = 3$，$\lambda > 0$）}
+
+由稳定性得 $x_1 = \lambda/2$，$x_2 = \lambda$。代入有效约束：
+\[
+\frac{\lambda}{2} + 2\lambda = 3 \implies \frac{5\lambda}{2} = 3 \implies \lambda^* = \frac{6}{5}
+\]
+
+\[
+x_1^* = \frac{3}{5}, \quad x_2^* = \frac{6}{5}, \quad \lambda^* = \frac{6}{5} > 0 \;\checkmark
+\]
+
+\textbf{最优值}：$f^* = (3/5)^2 + (6/5)^2 = 9/25 + 36/25 = \dfrac{9}{5}$
+
+\textbf{几何验证}：无约束最优点为原点 $(0,0)$，它在 $x_1+2x_2 < 3$ 一侧（违约），故最优解在约束边界上，且最优点 $\to$ 原点的方向 $(3/5, 6/5) \propto (1, 2)$ 正是约束超平面的法方向 ✓
+
+\textbf{对偶解释}：$\lambda^* = 6/5$ 表示将约束右端从 3 变为 $3+\epsilon$ 时，最优值近似增大 $\lambda^* \epsilon = 6\epsilon/5$（约束越紧，离原点越远）。
+
+\end{blackboard}
+
+\begin{blackboard}[计算例子：等式 + 不等式约束同时存在]
+
+\textbf{问题}：最小化距原点的平方距离，等式约束 $x_1+x_2=2$，同时不能让 $x_1$ 太小。
+\[
+\min_{x_1, x_2} \;\; x_1^2 + x_2^2 \quad \text{s.t.} \quad x_1 + x_2 = 2, \quad x_1 \geq \frac{3}{2}
+\]
+
+\textbf{第一步：先忽略不等式，只用等式}
+
+在 $x_1+x_2=2$ 上，令 $\nabla_x L=0$（只有等式乘子 $\nu$）：
+\[
+2x_1 + \nu = 0, \quad 2x_2 + \nu = 0 \implies x_1 = x_2 = 1
+\]
+检查不等式：$x_1 = 1 < 3/2$，\textbf{违反约束}，因此不等式必须被激活。
+
+\textbf{第二步：两个约束同时有效}
+
+联立 $x_1 + x_2 = 2$ 和 $x_1 = 3/2$，立得 $x_2 = 1/2$。
+
+\textbf{Lagrangian}（$\nu$ 无符号要求，$\lambda \geq 0$ 对应 $\frac{3}{2} - x_1 \leq 0$）：
+\[
+L = x_1^2 + x_2^2 + \nu(x_1 + x_2 - 2) + \lambda\!\left(\tfrac{3}{2} - x_1\right)
+\]
+
+\textbf{KKT 稳定性条件}：
+\[
+2x_1 + \nu - \lambda = 0, \qquad 2x_2 + \nu = 0
+\]
+
+代入 $x_2 = 1/2$：$\nu = -2 \times \frac{1}{2} = -1$。
+
+代入 $x_1 = 3/2$：$\lambda = 2x_1 + \nu = 3 + (-1) = 2 > 0$ \checkmark
+
+\textbf{最优解}：
+\[
+x_1^* = \frac{3}{2},\quad x_2^* = \frac{1}{2},\quad \nu^* = -1,\quad \lambda^* = 2, \quad f^* = \frac{9}{4}+\frac{1}{4} = \frac{10}{4} = \frac{5}{2}
+\]
+
+\textbf{与无等式约束对比}：若无 $x_1 \geq 3/2$，最优为 $(1,1)$，$f=2$；加上约束后被推离，$f$ 增大到 $5/2$，增量恰为 $\lambda^* \times (3/2 - 1) = 2 \times 1/2 = 1$。
+
+\end{blackboard}
+
+\begin{blackboard}[计算例子：两个不等式约束，逐一排查哪个有效]
+
+\textbf{问题}：
+\[
+\min_{x_1, x_2} \;\; (x_1 - 3)^2 + (x_2 - 2)^2 \quad \text{s.t.} \quad \underbrace{x_1 + x_2 \leq 4}_{g_1 \leq 0}, \quad \underbrace{x_2 \leq 1}_{g_2 \leq 0}
+\]
+
+\textbf{无约束最优}：$(3, 2)$。检查：$3+2=5>4$（违反 $g_1$），$2>1$（违反 $g_2$）。\textbf{两个约束都破坏}，需要分情况。
+
+\textbf{Lagrangian}（$\lambda_1, \lambda_2 \geq 0$）：
+\[
+L = (x_1-3)^2 + (x_2-2)^2 + \lambda_1(x_1+x_2-4) + \lambda_2(x_2-1)
+\]
+稳定性：
+\[
+2(x_1-3) + \lambda_1 = 0, \qquad 2(x_2-2) + \lambda_1 + \lambda_2 = 0
+\]
+
+\textbf{情况 A：仅 $g_1$ 有效（$\lambda_1>0$，$\lambda_2=0$，$x_1+x_2=4$）}
+
+由稳定性：$x_1 = 3 - \lambda_1/2$，$x_2 = 2 - \lambda_1/2$。
+
+代入有效约束：$(3-\lambda_1/2)+(2-\lambda_1/2)=4 \implies \lambda_1 = 1 > 0$ \checkmark
+
+$x_1 = 5/2,\; x_2 = 3/2$。检查 $g_2$：$x_2 = 3/2 > 1$，\textbf{违反 $g_2$}。情况 A 不可行。
+
+\textbf{情况 B：仅 $g_2$ 有效（$\lambda_2>0$，$\lambda_1=0$，$x_2=1$）}
+
+由第一个稳定性方程：$x_1 = 3$（$\lambda_1=0$，$x_1-3$ 的梯度消失）。
+
+由第二个方程：$\lambda_2 = -2(x_2-2) = -2(1-2) = 2 > 0$ \checkmark
+
+检查 $g_1$：$x_1+x_2 = 3+1 = 4 \leq 4$ \checkmark（恰好满足，但 $\lambda_1=0$ 表示不驱动它）
+
+\textbf{情况 C：两个约束同时有效（$\lambda_1, \lambda_2 > 0$）}
+
+$x_2=1, x_1+x_2=4 \implies x_1=3$，与情况 B 一致，但稳定性：$2(3-3)+\lambda_1=0 \implies \lambda_1=0$，退化为情况 B。
+
+\textbf{最优解}：
+\[
+x_1^* = 3,\quad x_2^* = 1,\quad \lambda_1^* = 0,\quad \lambda_2^* = 2,\quad f^* = 0^2 + 1^2 = 1
+\]
+
+\textbf{直觉}：目标点 $(3,2)$ 被 $x_2 \leq 1$ 阻挡，沿 $x_2$ 方向压到 $x_2=1$，而 $x_1$ 方向无约束可以达到最优 $x_1=3$，故只有 $g_2$ 真正起作用。$g_1$ 的约束恰好在边界上，但不影响最优。
+
+\end{blackboard}
+
+\begin{blackboard}[计算例子：非线性约束——球形可行域]
+
+\textbf{问题}：最小化到原点的平方距离，但可行域是以 $(2,2)$ 为中心、半径 $\sqrt{2}$ 的圆盘内部。
+\[
+\min_{x_1,x_2} \;\; x_1^2 + x_2^2 \quad \text{s.t.} \quad (x_1-2)^2 + (x_2-2)^2 \leq 2
+\]
+
+\textbf{无约束最优}：$(0,0)$。检查：$(0-2)^2+(0-2)^2=8 > 2$，违反约束；因此约束有效。
+
+\textbf{Lagrangian}（$g = (x_1-2)^2+(x_2-2)^2-2 \leq 0$，$\lambda \geq 0$）：
+\[
+L = x_1^2 + x_2^2 + \lambda\bigl[(x_1-2)^2 + (x_2-2)^2 - 2\bigr]
+\]
+
+\textbf{KKT 稳定性条件}（注意梯度含非线性项）：
+\[
+2x_1 + 2\lambda(x_1 - 2) = 0 \implies x_1(1+\lambda) = 2\lambda \implies x_1 = \frac{2\lambda}{1+\lambda}
+\]
+\[
+2x_2 + 2\lambda(x_2 - 2) = 0 \implies x_2 = \frac{2\lambda}{1+\lambda}
+\]
+
+由对称性 $x_1 = x_2$，代入有效约束 $(x_1-2)^2+(x_2-2)^2=2$：
+\[
+2(x_1-2)^2 = 2 \implies x_1 - 2 = \pm 1
+\]
+因 $\lambda > 0$ 时 $x_1 = \frac{2\lambda}{1+\lambda} \in (0, 2)$，取 $x_1 = 1$，则：
+\[
+1 = \frac{2\lambda}{1+\lambda} \implies 1 + \lambda = 2\lambda \implies \lambda^* = 1 > 0 \;\checkmark
+\]
+
+\textbf{最优解}：
+\[
+x_1^* = x_2^* = 1, \quad \lambda^* = 1, \quad f^* = 1^2 + 1^2 = 2
+\]
+
+\textbf{几何直觉}：原点到圆心 $(2,2)$ 的连线方向为 $(1,1)/\sqrt{2}$，最近的可行点正是沿该方向从圆心出发距离 $\sqrt{2}$ 处，即 $(2,2)-\sqrt{2}\cdot(1,1)/\sqrt{2} = (1,1)$。
+
+\textbf{KKT 的梯度平行条件}：
+\[
+\underbrace{\nabla f}_{(2,2)} = -\lambda \underbrace{\nabla g}_{(2(x_1-2),\,2(x_2-2))} \Big|_{(1,1)} = -1 \cdot (-2,-2) = (2,2) \;\checkmark
+\]
+目标函数等高线与约束边界在 $(1,1)$ 处相切，这是非线性约束下 KKT 条件的几何本质。
+
+\end{blackboard}
+
+\begin{blackboard}[计算例子：非线性约束——双曲线可行域]
+
+\textbf{问题}：在圆盘内且满足双曲线约束的区域上，最小化 $x_1+x_2$。
+\[
+\min_{x_1,x_2} \;\; x_1 + x_2 \quad \text{s.t.} \quad x_1^2 + x_2^2 \leq 9, \quad x_1 x_2 \geq 1
+\]
+
+\textbf{直观分析}：目标是最小化 $x_1+x_2$（越小越好），而 $x_1 x_2 \geq 1$ 要求两者之积不能太小。
+
+在 $x_1 x_2 = 1$ 的约束下，由 \textbf{AM-GM 不等式}：
+\[
+x_1 + x_2 \geq 2\sqrt{x_1 x_2} = 2, \quad \text{等号当且仅当 } x_1 = x_2 = 1
+\]
+候选点 $(1,1)$：检查 $x_1^2+x_2^2 = 2 \leq 9$ \checkmark。
+
+\textbf{Lagrangian}（$g_1 = x_1^2+x_2^2-9 \leq 0$，$g_2 = 1-x_1x_2 \leq 0$，$\lambda_1,\lambda_2 \geq 0$）：
+\[
+L = x_1 + x_2 + \lambda_1(x_1^2+x_2^2-9) + \lambda_2(1 - x_1 x_2)
+\]
+
+\textbf{KKT 稳定性条件}：
+\[
+1 + 2\lambda_1 x_1 - \lambda_2 x_2 = 0
+\]
+\[
+1 + 2\lambda_1 x_2 - \lambda_2 x_1 = 0
+\]
+
+在 $(1,1)$ 处检查 $g_1$：$1+1-9=-8 < 0$（严格满足），故互补松弛给出 $\lambda_1^* = 0$。
+
+代入两式：
+\[
+1 + 0 - \lambda_2 \cdot 1 = 0 \implies \lambda_2^* = 1 > 0 \;\checkmark
+\]
+
+$g_2$ 的互补松弛：$\lambda_2(1-x_1 x_2)=1\cdot(1-1)=0$ \checkmark
+
+\textbf{最优解}：
+\[
+x_1^* = x_2^* = 1, \quad \lambda_1^* = 0, \quad \lambda_2^* = 1, \quad f^* = 2
+\]
+
+\textbf{梯度平行条件验证}：$\nabla f = (1,1)$，$\nabla g_2 = (-x_2,-x_1)|_{(1,1)} = (-1,-1)$，
+\[
+(1,1) = -\lambda_2^* \cdot (-1,-1) = 1 \cdot (1,1) \;\checkmark
+\]
+
+\textbf{与线性约束对比}：
+\begin{itemize}
+  \item 线性约束的边界是直线，法向量为常数向量；
+  \item 非线性约束（圆、双曲线）的法向量随位置变化，KKT 的"梯度平行"条件自动选出那个法向量恰好与 $\nabla f$ 对齐的点。
+\end{itemize}
+
+\end{blackboard}
+
 %========================================
 \section{对偶的经济学解释}
 %========================================
@@ -1469,62 +2482,72 @@ g_2(x) &= x_1 - 8 \leq 0 \quad \text{（机器A）} \\
 g_3(x) &= x_2 - 6 \leq 0 \quad \text{（机器B）}
 \end{align*}
 
-\textbf{最优解}：$x_1^* = 4$，$x_2^* = 6$，成本 $= 2(4) + 3(6) = 26$
+\textbf{求解}：$x_1$ 单价更低，应尽量多用机器A。令 $x_1=8$（机器A满产），则产量约束要求 $x_2 \geq 2$，取 $x_2=2$（机器B远未满产）。
+
+\textbf{最优解}：$x_1^* = 8$，$x_2^* = 2$，成本 $= 2(8) + 3(2) = \mathbf{22}$
+
+\textbf{有效约束}：$g_1$（产量恰好满足）、$g_2$（机器A满产）；$g_3$ 不有效（$x_2^*=2 \ll 6$）。
 
 \end{blackboard}
 
 \begin{blackboard}[影子价格的计算与解释]
 
-\textbf{KKT 条件给出}：$\lambda_1^* = 2$，$\lambda_2^* = 0$，$\lambda_3^* = 1$
+\textbf{KKT 验证}（$g_1, g_2$ 有效，$\lambda_3=0$）：
+\[
+L = 2x_1 + 3x_2 + \lambda_1(-x_1-x_2+10) + \lambda_2(x_1-8) + \lambda_3(x_2-6)
+\]
+稳定性条件：
+\[
+2 - \lambda_1 + \lambda_2 = 0, \qquad 3 - \lambda_1 + \lambda_3 = 0
+\]
+代入 $\lambda_3 = 0$：$\lambda_1^* = 3$，$\lambda_2^* = \lambda_1-2 = 1$。两者均 $\geq 0$ \checkmark
 
-\textbf{解释}：
+\textbf{影子价格}：$\lambda_1^* = 3$，$\lambda_2^* = 1$，$\lambda_3^* = 0$
 
-\textbf{约束1}（产量需求 $\geq 10$）：$\lambda_1^* = 2$
+\medskip
+\textbf{约束1}（产量需求 $x_1+x_2 \geq 10$）：$\lambda_1^* = 3$
 \begin{itemize}
-    \item 如果只需要生产 9 件（放松 1 单位）
-    \item 新问题：$g_1(x) = -x_1 - x_2 + 10 \leq 1$
-    \item 成本减少约 $\lambda_1^* \times 1 = 2$ 元
+    \item 若需求降为 9（放松 $\epsilon_1=1$），最优改为 $x_1=8, x_2=1$，成本 $= 19 = 22 - 3$ \checkmark
+    \item 预测：$\Delta \text{成本} \approx -\lambda_1^* \epsilon_1 = -3$
 \end{itemize}
 
-\textbf{约束2}（机器A产能 $\leq 8$）：$\lambda_2^* = 0$
+\textbf{约束2}（机器A产能 $x_1 \leq 8$）：$\lambda_2^* = 1$
 \begin{itemize}
-    \item 当前 $x_1^* = 4 < 8$，产能没用完
-    \item 增加机器A产能没有价值！
+    \item $x_2^* = 8$，产能用尽；若产能扩至 9（$\epsilon_2=1$），最优改为 $x_1=9, x_2=1$，成本 $= 21 = 22 - 1$ \checkmark
+    \item 每扩容一单位机器A，成本降低 1 元
 \end{itemize}
 
-\textbf{约束3}（机器B产能 $\leq 6$）：$\lambda_3^* = 1$
+\textbf{约束3}（机器B产能 $x_2 \leq 6$）：$\lambda_3^* = 0$
 \begin{itemize}
-    \item 当前 $x_2^* = 6$，产能用尽
-    \item 如果机器B产能增加到 7（放松 1 单位）
-    \item 新问题：$g_3(x) = x_2 - 6 \leq 1$
-    \item 成本减少约 $\lambda_3^* \times 1 = 1$ 元
+    \item $x_2^* = 2 \ll 6$，产能大量闲置；扩大机器B产能毫无价值
+    \item 互补松弛：$\lambda_3^*(x_2^*-6)=0 \cdot(-4)=0$ \checkmark
 \end{itemize}
 
 \end{blackboard}
 
 \begin{blackboard}[验证：放松约束后重新求解]
 
-\textbf{原问题}：机器B产能 $\leq 6$
+\textbf{原问题}：需求 $\geq 10$，机器A $\leq 8$
 \begin{itemize}
-    \item 最优解：$x_1^* = 4$，$x_2^* = 6$
-    \item 成本：$26$
+    \item 最优解：$x_1^* = 8$，$x_2^* = 2$，成本 $= 22$
 \end{itemize}
 
-\textbf{放松后}：机器B产能 $\leq 7$
+\textbf{放松需求}：需求 $\geq 9$（$\epsilon_1 = 1$）
 \begin{itemize}
-    \item 新最优解：$x_1^* = 3$，$x_2^* = 7$
-    \item 新成本：$2(3) + 3(7) = 27$？
+    \item 新最优：$x_1^* = 8$，$x_2^* = 1$，成本 $= 19$
+    \item 实际降低：$22 - 19 = 3 = \lambda_1^* \times 1$ \checkmark
 \end{itemize}
 
-等等，成本增加了？让我们重新思考...
-
-\textbf{注意}：我们是在\textbf{最小化}成本，放松产能约束不一定降低成本！
-
-\textbf{正确理解}：
+\textbf{扩大机器A产能}：$x_1 \leq 9$（$\epsilon_2 = 1$）
 \begin{itemize}
-    \item $\lambda_3^* = 1$ 意味着约束``值 1 元''
-    \item 如果\textbf{收紧}约束（机器B只能生产5件），成本会\textbf{增加}约 1 元
-    \item 验证：$x_1 = 5, x_2 = 5$，成本 $= 2(5) + 3(5) = 25$... 
+    \item 新最优：$x_1^* = 9$，$x_2^* = 1$，成本 $= 21$
+    \item 实际降低：$22 - 21 = 1 = \lambda_2^* \times 1$ \checkmark
+\end{itemize}
+
+\textbf{扩大机器B产能}：$x_2 \leq 7$（$\epsilon_3 = 1$）
+\begin{itemize}
+    \item 最优仍为 $x_1^* = 8$，$x_2^* = 2$，成本仍 $= 22$
+    \item 降低：$0 = \lambda_3^* \times 1$ \checkmark（机器B本就闲置）
 \end{itemize}
 
 \textbf{重新审视}：影子价格的符号取决于问题的设定方式！
@@ -2727,5 +3750,484 @@ print(f"批量优化 1000 个问题: {time.time() - start:.2f} 秒")
 \textbf{5.} 设计实验：对于 $n = 1000, 5000, 10000, 50000$ 的 QP 问题，分别用 CVXPY 内点法和 GPU 梯度下降求解，画出``问题规模 vs 求解时间''的曲线。在什么规模下 GPU 开始占优势？
 
 \end{blackboard}
+
+%========================================
+\section{附录：求解 MDP 的三条路 $\bigstar$}
+%========================================
+
+\begin{blackboard}[三条路的出发点]
+
+MDP 的核心目标是找最优策略 $\pi^*$，等价于求最优值函数 $V^*$ 满足 Bellman 最优方程：
+\[
+V^*(s) = \max_a \left[ r(s,a) + \gamma \sum_{s'} P(s'|s,a)\, V^*(s') \right]
+\]
+
+这是一个关于 $V^* \in \mathbb{R}^{|S|}$ 的\textbf{非线性不动点方程}（非线性来自 $\max$）。三条路各有不同的解法思路：
+
+\begin{center}
+\begin{tabular}{c|c|c|c}
+ & 值迭代 & 策略迭代 & 强化学习 \\
+\hline
+需要知道 $P$？ & 是 & 是 & 否 \\
+每步计算量 & 轻 & 重（解方程组） & 轻（采样） \\
+收敛速度 & 线性（$\gamma$ 压缩） & 有限步必收敛 & 慢（方差大） \\
+适合规模 & 小规模 & 小规模 & 大规模
+\end{tabular}
+\end{center}
+
+\end{blackboard}
+
+\begin{blackboard}[第一条路：值迭代（Value Iteration）]
+
+\textbf{核心思路}：直接对 Bellman 最优算子 $T$ 反复迭代。
+
+定义 Bellman 最优算子 $T: \mathbb{R}^{|S|} \to \mathbb{R}^{|S|}$：
+\[
+(TV)(s) = \max_a \left[ r(s,a) + \gamma \sum_{s'} P(s'|s,a)\, V(s') \right]
+\]
+
+\textbf{算法}：从任意初始值 $V^{(0)}$（如全零）出发，迭代：
+\[
+V^{(t+1)}(s) = \max_a \left[ r(s,a) + \gamma \sum_{s'} P(s'|s,a)\, V^{(t)}(s') \right]
+\]
+
+\textbf{收敛性证明}：$T$ 是 $\gamma$-压缩映射（在 $\|\cdot\|_\infty$ 意义下）。
+
+\begin{lemma}[$T$ 是 $\gamma$-压缩映射]
+对任意 $V, V' \in \mathbb{R}^{|S|}$：
+\[
+\|TV - TV'\|_\infty \leq \gamma \|V - V'\|_\infty
+\]
+\end{lemma}
+
+\textbf{证明}：对任意状态 $s$，设 $a^* = \arg\max_a [r(s,a) + \gamma \sum_{s'} P(s'|s,a) V(s')]$，
+\begin{align*}
+(TV)(s) - (TV')(s)
+&\leq r(s,a^*) + \gamma \sum_{s'} P(s'|s,a^*) V(s') \\
+&\quad - r(s,a^*) - \gamma \sum_{s'} P(s'|s,a^*) V'(s') \\
+&= \gamma \sum_{s'} P(s'|s,a^*) \bigl[V(s') - V'(s')\bigr] \\
+&\leq \gamma \sum_{s'} P(s'|s,a^*) \|V - V'\|_\infty \\
+&= \gamma \|V - V'\|_\infty
+\end{align*}
+
+对称地，$(TV')(s) - (TV)(s) \leq \gamma\|V-V'\|_\infty$，故 $|(TV)(s)-(TV')(s)| \leq \gamma\|V-V'\|_\infty$，对所有 $s$ 取上确界得结论。$\square$
+
+由 Banach 不动点定理，$T$ 有唯一不动点 $V^* = TV^*$，且从任意初始点出发：
+\[
+\|V^{(t)} - V^*\|_\infty \leq \gamma^t \|V^{(0)} - V^*\|_\infty
+\]
+误差每步缩小 $\gamma$ 倍，\textbf{线性收敛}，步数 $O\!\left(\frac{\log(1/\varepsilon)}{1-\gamma}\right)$。
+
+\textbf{每步代价}：遍历所有 $(s,a)$ 对，计算量 $O(|S|^2 |A|)$（含转移概率求和）。
+
+\textbf{缺点}：状态空间爆炸（Atari 游戏的像素空间 $\sim 10^{100000}$）完全无法枚举。
+
+\end{blackboard}
+
+\begin{blackboard}[第二条路：策略迭代（Policy Iteration）]
+
+\textbf{核心思路}：交替做「策略评估」和「策略改进」。
+
+\textbf{算法框架}：从任意初始策略 $\pi^{(0)}$ 出发，交替执行：
+
+\textbf{步骤 1——策略评估}（Policy Evaluation）：固定策略 $\pi$，求对应的值函数 $V^\pi$。
+
+$V^\pi$ 满足线性 Bellman 方程：
+\[
+V^\pi(s) = r(s, \pi(s)) + \gamma \sum_{s'} P(s' | s, \pi(s))\, V^\pi(s')
+\]
+
+写成矩阵形式：设 $[P_\pi]_{ss'} = P(s'|s,\pi(s))$，$r_\pi(s) = r(s,\pi(s))$，
+\[
+V^\pi = r_\pi + \gamma P_\pi V^\pi
+\implies
+\underbrace{(I - \gamma P_\pi)}_{\text{可逆，因 $\gamma < 1$}} V^\pi = r_\pi
+\implies
+V^\pi = (I - \gamma P_\pi)^{-1} r_\pi
+\]
+
+$(I - \gamma P_\pi)$ 可逆的原因：$\gamma < 1$ 使其严格对角占优。可以直接求逆 $O(|S|^3)$ 或用迭代法（Gauss-Seidel）。
+
+\textbf{步骤 2——策略改进}（Policy Improvement）：用 $V^\pi$ 贪心更新策略：
+\[
+\pi'(s) = \arg\max_a \left[ r(s,a) + \gamma \sum_{s'} P(s'|s,a)\, V^\pi(s') \right]
+\]
+
+\begin{theorem}[策略改进定理]
+$V^{\pi'} \geq V^\pi$（逐分量不等式），且若 $\pi' = \pi$，则 $\pi$ 已是最优策略。
+\end{theorem}
+
+\textbf{证明}（单步不等式）：
+
+\begin{align*}
+V^\pi(s) &= r(s,\pi(s)) + \gamma \sum_{s'} P(s'|s,\pi(s)) V^\pi(s') \\
+&\leq \max_a \left[r(s,a) + \gamma \sum_{s'} P(s'|s,a) V^\pi(s')\right] \\
+&= r(s,\pi'(s)) + \gamma \sum_{s'} P(s'|s,\pi'(s)) V^\pi(s') \\
+&\leq r(s,\pi'(s)) + \gamma \sum_{s'} P(s'|s,\pi'(s)) V^{\pi'}(s') \\
+&= V^{\pi'}(s) \qquad \square
+\end{align*}
+（第二个不等号递归展开，需用 $V^\pi \leq V^{\pi'}$ 归纳。）
+
+\textbf{收敛性}：策略空间有限（最多 $|A|^{|S|}$ 个确定性策略），每次迭代严格改进（$V^{\pi'} > V^\pi$ 除非已最优），故\textbf{有限步内必收敛}，与 $\gamma$ 无关。
+
+\textbf{与值迭代的比较}：策略迭代每步计算量大（$O(|S|^3)$ 解线性方程组），但步数通常远少于值迭代——实践中几步到几十步即可收敛。
+
+\end{blackboard}
+
+\begin{blackboard}[第三条路：强化学习（不知道 $P$）]
+
+前两条路都假设已知转移概率 $P(s'|s,a)$（model-based）。现实中 $P$ 往往未知，只能通过与环境交互采样得到 $(s, a, r, s')$。
+
+\textbf{Q-learning}（值函数法，off-policy）
+
+维护动作值函数 $Q(s,a)$ 的估计，每次观测 $(s, a, r, s')$ 更新：
+\[
+Q(s,a) \;\leftarrow\; Q(s,a) + \alpha \underbrace{\bigl[r + \gamma \max_{a'} Q(s',a') - Q(s,a)\bigr]}_{\text{TD 误差（Temporal Difference Error）}}
+\]
+
+\begin{itemize}
+    \item 括号里是\textbf{时序差分误差}（TD error）：当前估计与 Bellman 方程右端之差
+    \item $\alpha$ 是学习率（步长），类比随机梯度下降
+    \item 无需知道 $P$，直接用样本 $s'$ 近似期望
+    \item 收敛性：在一定条件下（每个 $(s,a)$ 访问无穷次，学习率满足 Robbins-Monro 条件）收敛到 $Q^*$
+\end{itemize}
+
+\textbf{策略梯度}（Policy Gradient，直接优化策略参数）
+
+参数化策略 $\pi_\theta(a|s)$（如神经网络），直接对参数 $\theta$ 做梯度上升：
+\[
+\nabla_\theta J(\theta) = \mathbb{E}_{\pi_\theta} \left[ \nabla_\theta \log \pi_\theta(a|s) \cdot Q^{\pi_\theta}(s,a) \right]
+\]
+
+\begin{itemize}
+    \item 右侧期望用轨迹采样估计（Monte Carlo 或 TD）
+    \item $\nabla_\theta \log \pi_\theta(a|s)$：对数策略梯度（score function），指向增加动作 $a$ 概率的方向
+    \item $Q^{\pi_\theta}(s,a)$：该动作的"权重"，好动作权重高，坏动作权重低
+    \item \textbf{与 LP 对偶的联系}：策略梯度在\textbf{占用度量}（occupancy measure）空间里做的，正是 LP 对偶问题的梯度上升——两者的对象是同一个优化问题的两个侧面
+\end{itemize}
+
+\textbf{与 LP 框架的根本区别}
+
+\begin{center}
+\begin{tabular}{c|c|c}
+方法 & 本质 & 优缺点 \\
+\hline
+值迭代 / 策略迭代 & 不动点迭代（函数空间） & 有理论保证，难以加约束 \\
+LP 方法 & 全局优化问题 & 有对偶结构，可加约束，但规模受限 \\
+强化学习 & 随机近似 / 梯度估计 & 可扩展，但收敛慢、方差大
+\end{tabular}
+\end{center}
+
+\begin{keypoint}[为什么安全强化学习要回到 LP？]
+值迭代和策略迭代是\textbf{不动点迭代}，本质在函数空间里找压缩映射的极限，\textbf{加约束极为麻烦}（约束会破坏压缩映射结构）。
+
+LP 把 Bellman 不动点转化为\textbf{全局优化问题}，约束直接加到 LP 里——这正是\textbf{约束马尔可夫决策过程}（Constrained MDP, CMDP）和\textbf{安全强化学习}最终要借助 LP 或拉格朗日对偶框架的根本原因。
+\end{keypoint}
+
+\end{blackboard}
+
+%========================================
+\section{附录：近端梯度法 $\bigstar$}
+%========================================
+
+\begin{blackboard}[问题设置：光滑 + 不可微]
+
+许多实际优化问题的目标函数由两部分组成：
+\[
+\min_x \quad \underbrace{f(x)}_{\text{光滑凸（有梯度）}} + \underbrace{g(x)}_{\text{不可微凸（无梯度）}}
+\]
+
+典型的 $g$：
+\begin{center}
+\begin{tabular}{c|c|l}
+$g(x)$ & 名称 & 用途 \\
+\hline
+$\lambda\|x\|_1$ & $\ell_1$ 范数 & 稀疏回归（LASSO）、特征选择 \\
+$\mathbf{1}_C(x)$ & 指示函数 & 投影到凸集（等式 / 不等式约束） \\
+$\lambda\|X\|_*$ & 核范数 & 矩阵补全（低秩约束） \\
+$\lambda\|\nabla x\|_1$ & Total Variation & 图像去噪（保边缘）
+\end{tabular}
+\end{center}
+
+\textbf{为什么不能直接梯度下降？}$g$ 不可微，$\nabla g$ 不存在，无法直接写出迭代格式。
+
+\end{blackboard}
+
+\begin{blackboard}[推导：从二次近似出发]
+
+\textbf{普通梯度下降的本质}：每步最小化 $f$ 在当前点 $x^{(t)}$ 处的二次上界：
+\[
+x^{(t+1)} = \arg\min_x \; \underbrace{f(x^{(t)}) + \nabla f(x^{(t)})^\top(x - x^{(t)}) + \frac{L}{2}\|x - x^{(t)}\|^2}_{\text{$f$ 的二次近似上界（$L$-光滑保证）}}
+\]
+
+化简后就是 $x^{(t+1)} = x^{(t)} - \frac{1}{L}\nabla f(x^{(t)})$。
+
+\textbf{加入不可微项 $g$}：保持 $g$ 原样，只对 $f$ 做二次近似：
+\begin{align*}
+x^{(t+1)} &= \arg\min_x \;\; g(x) + f(x^{(t)}) + \nabla f(x^{(t)})^\top(x - x^{(t)}) + \frac{L}{2}\|x - x^{(t)}\|^2 \\
+&= \arg\min_x \;\; g(x) + \frac{L}{2}\left\|x - \underbrace{\left(x^{(t)} - \frac{1}{L}\nabla f(x^{(t)})\right)}_{z^{(t)}:\ \text{梯度步之后的点}}\right\|^2
+\end{align*}
+
+（常数项 $f(x^{(t)}) - \frac{1}{2L}\|\nabla f(x^{(t)})\|^2$ 与 $x$ 无关，已略去。）
+
+\textbf{分两步理解}：
+\begin{enumerate}
+    \item \textbf{梯度步}：对光滑部分 $f$ 做一步梯度下降，得到 $z^{(t)} = x^{(t)} - \frac{1}{L}\nabla f(x^{(t)})$
+    \item \textbf{近端步}：把 $z^{(t)}$ "投影"回让 $g$ 小的区域，得到 $x^{(t+1)}$
+\end{enumerate}
+
+\end{blackboard}
+
+\begin{blackboard}[近端算子的定义]
+
+\begin{definition}[近端算子]
+函数 $g$ 的近端算子（proximal operator）：
+\[
+\operatorname{prox}_{\frac{1}{L}g}(z) = \arg\min_x \;\; g(x) + \frac{L}{2}\|x - z\|^2
+\]
+\end{definition}
+
+\textbf{含义}：找一个既让 $g$ 小（第一项）、又离 $z$ 不远（第二项）的点；$1/L$ 控制两者的权衡。
+
+\textbf{关键性质}：
+\begin{itemize}
+    \item 当 $g$ 是凸函数时，近端算子有\textbf{唯一解}（严格凸的 $\|x-z\|^2$ 确保唯一性）
+    \item 近端算子是\textbf{非扩张映射}：$\|\operatorname{prox}(z) - \operatorname{prox}(z')\| \leq \|z - z'\|$
+    \item 当 $g = 0$ 时，$\operatorname{prox}(z) = z$（退化为恒等映射）
+\end{itemize}
+
+\textbf{完整算法（近端梯度法，PGM）}：
+\[
+\boxed{z^{(t)} = x^{(t)} - \frac{1}{L}\nabla f(x^{(t)}), \qquad x^{(t+1)} = \operatorname{prox}_{\frac{1}{L}g}\!\left(z^{(t)}\right)}
+\]
+
+\end{blackboard}
+
+\begin{blackboard}[三个最重要的近端算子]
+
+\textbf{1. $g(x) = \lambda\|x\|_1$（LASSO / 稀疏约束）}
+
+逐分量求解：对每个分量 $\min_{x_i} \lambda|x_i| + \frac{L}{2}(x_i - z_i)^2$，得\textbf{软阈值算子}：
+\[
+\operatorname{prox}(z_i) = \operatorname{sign}(z_i)\cdot\max\!\left(|z_i| - \frac{\lambda}{L},\; 0\right)
+\]
+
+\begin{center}
+\begin{tikzpicture}[scale=0.85]
+    \draw[->] (-3.2, 0) -- (3.2, 0) node[right] {$z_i$};
+    \draw[->] (0, -2.2) -- (0, 2.2) node[above] {$\operatorname{prox}(z_i)$};
+    % 恒等线（虚线）
+    \draw[dashed, gray] (-3,-3) -- (3,3);
+    % 软阈值曲线
+    \def\lam{0.8}
+    \draw[myblue, very thick] (-3, {-3+\lam}) -- (-\lam, 0) -- (\lam, 0) -- (3, {3-\lam});
+    % 标注
+    \draw[<->] (0, -0.35) -- (\lam, -0.35) node[midway, below, font=\small] {$\lambda/L$};
+    \draw[<->] (0, 0.35) -- (-\lam, 0.35) node[midway, above, font=\small] {$\lambda/L$};
+    \node[myblue, font=\small] at (2.5, 1.2) {软阈值};
+    \node[gray, font=\small] at (2.5, 2.8) {恒等};
+\end{tikzpicture}
+\end{center}
+
+绝对值 $< \lambda/L$ 的分量\textbf{精确置零}（稀疏性的来源！），其余向零收缩 $\lambda/L$。
+
+\vspace{0.5em}
+\textbf{2. $g(x) = \mathbf{1}_C(x)$（凸集指示函数）}
+
+$\mathbf{1}_C(x) = 0$（若 $x \in C$）或 $+\infty$（否则）。近端算子退化为\textbf{投影}：
+\[
+\operatorname{prox}(z) = \operatorname{Proj}_C(z) = \arg\min_{x \in C} \|x - z\|^2
+\]
+
+近端梯度法退化为\textbf{投影梯度下降（PGD）}：先做梯度步，再投影回可行域。
+
+\vspace{0.5em}
+\textbf{3. $g(X) = \lambda\|X\|_*$（核范数，矩阵补全）}
+
+设 $Z = U\,\Sigma V^\top$（SVD），近端算子为\textbf{奇异值软阈值（SVT）}：
+\[
+\operatorname{prox}(Z) = U\;\operatorname{diag}\!\left(\max\!\left(\sigma_i - \frac{\lambda}{L},\; 0\right)\right) V^\top
+\]
+
+对奇异值做软阈值——小奇异值置零，降低矩阵秩，推动低秩结构。
+
+\end{blackboard}
+
+\begin{blackboard}[近端算子为什么"不用解优化"？]
+
+\textbf{澄清一个常见误解}：近端算子本身确实是个优化问题：
+\[
+\operatorname{prox}_{\alpha g}(z) = \arg\min_x \;\; g(x) + \frac{1}{2\alpha}\|x - z\|^2
+\]
+并没有回避优化。说"不用解优化"的意思是：对常见的 $g$，这个问题有\textbf{闭合形式解}，直接套公式 $O(n)$ 算完，\textbf{无需迭代}。
+
+\begin{center}
+\begin{tabular}{c|c|c}
+$g(x)$ & $\operatorname{prox}_{\alpha g}(z)$ 的闭合形式 & 计算量 \\
+\hline
+$\lambda\|x\|_1$ & 软阈值，逐元素操作 & $O(n)$ \\
+$\mathbf{1}_C(x)$，$C$ 是半空间 & 一次内积 + 截断 & $O(n)$ \\
+$\mathbf{1}_C(x)$，$C$ 是球 & 归一化 & $O(n)$ \\
+$\lambda\|x\|_2$（group lasso） & 向量软阈值 & $O(n)$ \\
+$\lambda\|X\|_*$ & SVD + 奇异值软阈值 & $O(n^3)$ \\
+\end{tabular}
+\end{center}
+
+\end{blackboard}
+
+\begin{blackboard}[$\ell_1$ 近端算子闭合解的推导]
+
+标量情形（$n=1$，$g(x) = \lambda|x|$）：
+\[
+\min_x \;\; \lambda|x| + \frac{1}{2\alpha}(x - z)^2
+\]
+
+$\lambda|x|$ 在 $x=0$ 处不可微，用\textbf{次梯度最优性条件}（$0 \in \partial F(x)$）：
+\[
+\frac{x - z}{\alpha} + \lambda \cdot \partial|x| \ni 0
+\]
+
+分三种情况讨论：
+
+\begin{enumerate}
+    \item \textbf{若 $x > 0$}：$\partial|x| = \{1\}$，条件变为 $\frac{x-z}{\alpha} + \lambda = 0$，解得 $x = z - \alpha\lambda$，要求 $z > \alpha\lambda$。
+    \item \textbf{若 $x < 0$}：$\partial|x| = \{-1\}$，条件变为 $\frac{x-z}{\alpha} - \lambda = 0$，解得 $x = z + \alpha\lambda$，要求 $z < -\alpha\lambda$。
+    \item \textbf{若 $x = 0$}：$\partial|x| = [-1,1]$，条件为 $\frac{-z}{\alpha} \in [-\lambda, \lambda]$，即 $|z| \leq \alpha\lambda$。
+\end{enumerate}
+
+三种情况合并，得\textbf{软阈值公式}（无需任何迭代）：
+\[
+\operatorname{prox}_{\alpha\lambda|\cdot|}(z) = \operatorname{sign}(z)\cdot\max(|z| - \alpha\lambda,\; 0)
+\]
+
+\textbf{向量推广}：$g(x) = \lambda\|x\|_1 = \sum_i\lambda|x_i|$ 各分量独立，对每维用上式，$O(n)$ 完成。
+
+\textbf{为什么 $\ell_1$ 产生精确零而 $\ell_2$ 不能？}
+
+对 $g(x) = \lambda x^2$（$\ell_2$），近端算子为 $\operatorname{prox}(z) = \frac{z}{1+2\alpha\lambda}$——对任意 $z \neq 0$ 输出均非零，只是缩小，永远无法置零。$\ell_1$ 的"死区" $|z| \leq \alpha\lambda$ 使得该区间内的分量被\textbf{精确拉到零}，这是稀疏性的几何根源。
+
+\end{blackboard}
+
+\begin{blackboard}[当近端算子没有闭合解时：ADMM]
+
+$g$ 结构复杂时，近端算子本身也需要迭代，近端梯度法优势消失：
+
+\begin{itemize}
+    \item $g(x) = \log(1 + e^x)$（logistic 损失）：$\operatorname{prox}$ 无闭合解
+    \item $g(x) = \|Ax\|_1$，$A$ 非对角：各分量被 $A$ 耦合，不可分离
+    \item 一般凸集的指示函数（如 $X \succeq 0$ 且 $\mathcal{A}(X) = b$）：投影无公式
+\end{itemize}
+
+\textbf{解法：ADMM（交替方向乘子法）}——引入辅助变量把 $f$ 和 $g$ 拆开：
+\[
+\min_{x,\, y} \;\; f(x) + g(y) \quad \text{s.t.} \quad x = y
+\]
+
+三步交替更新（$\rho > 0$ 为惩罚参数）：
+\begin{align*}
+x^{(t+1)} &= \arg\min_x \;\; f(x) + \frac{\rho}{2}\|x - y^{(t)} + u^{(t)}\|^2 \quad \text{（只含 $f$）}\\
+y^{(t+1)} &= \operatorname{prox}_{\frac{1}{\rho}g}\!\left(x^{(t+1)} + u^{(t)}\right) \quad \text{（只含 $g$，用近端算子）}\\
+u^{(t+1)} &= u^{(t)} + x^{(t+1)} - y^{(t+1)} \quad \text{（对偶变量更新，$O(n)$）}
+\end{align*}
+
+只要 $f$ 的子问题和 $g$ 的近端算子各自易于求解，整体就高效。
+
+\textbf{具体例子：LASSO 的 ADMM 分解}
+
+原问题 $\min_x \|Ax-b\|^2 + \lambda\|x\|_1$，令 $y = x$：
+
+\begin{itemize}
+    \item \textbf{$x$-子问题}：$\min_x \|Ax-b\|^2 + \frac{\rho}{2}\|x - y^{(t)} + u^{(t)}\|^2$
+
+    这是\textbf{岭回归}，闭合解 $x = (2A^\top A + \rho I)^{-1}(2A^\top b + \rho(y^{(t)} - u^{(t)}))$。
+
+    矩阵 $(2A^\top A + \rho I)$ \textbf{预先分解一次}（Cholesky，$O(n^3)$），之后每步只需回代 $O(n^2)$。
+
+    \item \textbf{$y$-子问题}：$\min_y \lambda\|y\|_1 + \frac{\rho}{2}\|y - (x^{(t+1)} + u^{(t)})\|^2$
+
+    这是 $\ell_1$ 的近端算子，直接\textbf{软阈值} $O(n)$：$y_i = \operatorname{sign}(v_i)\max(|v_i| - \lambda/\rho,\, 0)$，其中 $v = x^{(t+1)} + u^{(t)}$。
+
+    \item \textbf{$u$-更新}：$u \leftarrow u + x - y$，$O(n)$。
+\end{itemize}
+
+每次迭代代价：矩阵向量乘 $O(mn)$（利用预分解）+ 软阈值 $O(n)$。与直接近端梯度法（每步也需 $O(mn)$ 计算 $A^\top(Ax-b)$）代价相当，但 ADMM 把"难的耦合"藏进了预分解，适合 $A$ 结构特殊（稀疏、Toeplitz 等）的情形。
+
+\end{blackboard}
+
+\begin{blackboard}[收敛率分析]
+
+\begin{theorem}[近端梯度法收敛率]
+$f$ 是 $L$-光滑凸函数，$g$ 是凸函数，步长 $\alpha = 1/L$，则：
+\[
+f(x^{(t)}) + g(x^{(t)}) - (f^* + g^*) \leq \frac{L\|x^{(0)} - x^*\|^2}{2t} = O\!\left(\frac{1}{t}\right)
+\]
+\end{theorem}
+
+与普通梯度下降（只有 $f$，$g=0$）\textbf{完全相同的 $O(1/t)$ 收敛率}，但处理了不可微项。
+
+\textbf{加速版（FISTA，Beck \& Teboulle 2009）}：加入动量（Nesterov 加速）：
+\[
+y^{(t)} = x^{(t)} + \frac{t-1}{t+2}\bigl(x^{(t)} - x^{(t-1)}\bigr)
+\]
+\[
+x^{(t+1)} = \operatorname{prox}_{\frac{1}{L}g}\!\left(y^{(t)} - \frac{1}{L}\nabla f(y^{(t)})\right)
+\]
+
+收敛率提升到 $O(1/t^2)$，是一阶方法的理论最优（在凸 + $L$-光滑条件下）。
+
+\begin{center}
+\begin{tabular}{c|c|c}
+算法 & 收敛率 & 每步代价 \\
+\hline
+梯度下降（$g=0$） & $O(1/t)$ & $O(n)$ 梯度 \\
+近端梯度法（PGM） & $O(1/t)$ & $O(n)$ 梯度 + $\operatorname{prox}$ \\
+FISTA & $O(1/t^2)$ & $O(n)$ 梯度 + $\operatorname{prox}$（同 PGM） \\
+\end{tabular}
+\end{center}
+
+动量带来 $O(1/t^2)$ 而每步代价与 PGM 完全相同——免费的加速！
+
+\end{blackboard}
+
+\begin{blackboard}[三个具体应用]
+
+\textbf{1. LASSO（稀疏回归）}
+\[
+\min_x \; \underbrace{\|Ax - b\|^2}_{f,\ \text{光滑}} + \underbrace{\lambda\|x\|_1}_{g,\ \text{不可微}}
+\]
+$\nabla f(x) = 2A^\top(Ax - b)$，近端算子为软阈值。每步：梯度步 + 软阈值。
+
+$\ell_1$ 惩罚把小系数压到\textbf{精确的零}（而不是趋近零），天然产生稀疏解。这是压缩感知、基因选择的核心算法。
+
+\vspace{0.5em}
+\textbf{2. 矩阵补全（Netflix 问题）}
+\[
+\min_X \; \underbrace{\sum_{(i,j)\in\Omega}(X_{ij} - M_{ij})^2}_{f} + \underbrace{\lambda\|X\|_*}_{g}
+\]
+近端算子为奇异值软阈值（SVT）。每步：梯度步（仅在观测位置计算残差）+ SVT（压低矩阵秩）。
+
+\vspace{0.5em}
+\textbf{3. 图像去噪（Total Variation）}
+\[
+\min_x \; \underbrace{\|x - b\|^2}_{f} + \underbrace{\lambda\|\nabla x\|_1}_{g}
+\]
+$g$ 是图像梯度的 $\ell_1$ 范数，惩罚不连续性但容忍边缘跳变。近端算子有闭合形式（Chambolle 算法），能\textbf{保留边缘、去除噪声}。
+
+\end{blackboard}
+
+\begin{insight}[近端梯度法的核心思想]
+
+近端梯度法的精髓在于\textbf{分而治之}：
+
+\begin{itemize}
+    \item 光滑部分 $f$：用梯度（一阶信息）处理——廉价、可并行
+    \item 不可微部分 $g$：用近端算子精确处理——利用 $g$ 的特殊结构
+\end{itemize}
+
+只要能高效计算 $\operatorname{prox}_g$，就能处理任意的 $f + g$ 形式。
+
+\textbf{近端算子 vs. 投影的关系}：投影梯度下降是近端梯度法当 $g = \mathbf{1}_C$ 时的特例；核范数软阈值是矩阵版本的"投影"到低秩约束的松弛。三个例子本质上都在做同一件事：把"走了一步梯度"的中间点拉回到满足某种结构的地方。
+
+\end{insight}
 
 \end{document}
